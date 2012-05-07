@@ -63,39 +63,49 @@ function! s:engine.open(target)
   call dbg#insert()
 endfunction
 
+function! s:engine.run()
+  call dbg#write(0, 'run')
+  call dbg#read(0)
+  call s:engine.sync()
+endfunction
+
 function! s:engine.next()
-  call dbg#focusIn()
   call dbg#write(0, 'next')
   call dbg#read(0)
   call s:engine.sync()
 endfunction
 
 function! s:engine.step()
-  call dbg#focusIn()
   call dbg#write(0, 'step')
   call dbg#read(0)
   call s:engine.sync()
 endfunction
 
 function! s:engine.continue()
-  call dbg#focusIn()
   call dbg#write(0, 'continue')
   call dbg#read(0)
   call s:engine.sync()
 endfunction
 
 function! s:engine.stepout()
-  call dbg#focusIn()
   call dbg#write(0, 'finish')
   call dbg#read(0)
   call s:engine.sync()
 endfunction
 
-function! s:engine.print()
-  let word = expand("<cword>")
+function! s:engine.print(...)
+  if len(a:000) > 0
+    let word = a:1
+  endif
+  if word == ''
+    let word = expand("<cword>")
+  endif
   call dbg#focusIn()
   call dbg#write(1, printf('print %s', word))
   call dbg#read(1)
+  call cursor('$',0)
+  redraw
+  call dbg#focusBack()
 endfunction
 
 function! s:engine.breakpoint()
@@ -107,24 +117,30 @@ function! s:engine.breakpoint()
     \ line
     \ ))
   call dbg#read(1)
+  call cursor('$',0)
+  redraw
+  call dbg#focusBack()
 endfunction
 
 function! s:engine.locals()
   call dbg#focusIn()
   call dbg#write(1, 'info locals')
   call dbg#read(1)
+  call dbg#focusBack()
 endfunction
 
 function! s:engine.threads()
   call dbg#focusIn()
   call dbg#write(1, 'info threads')
   call dbg#read(1)
+  call dbg#focusBack()
 endfunction
 
 function! s:engine.callstack()
   call dbg#focusIn()
   call dbg#write(1, 'backtrace')
   call dbg#read(1)
+  call dbg#focusBack()
 endfunction
 
 function! s:engine.sync()
@@ -154,6 +170,7 @@ function! s:engine.close()
   call dbg#focusIn()
   call dbg#write(1, 'quit')
   call dbg#read(1)
+  call dbg#focusBack()
 endfunction
 
 " internal functions

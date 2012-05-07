@@ -7,7 +7,7 @@ endfunction
 
 function! s:engine.prepare()
   let t:dbg = {
-    \ 'prompt'      : '\d:\d\{3}> ',
+    \ 'prompt'      : '\d:\d\{3}\(:\w\+\)\{0,1}> ',
     \ 'verbose'     : 0,
     \ 'lnum'        : 1,
     \ 'line'        : '',
@@ -40,6 +40,8 @@ function! s:engine.open(target)
     return
   endif
 
+  call s:resolveModuleName()
+
   call dbg#write(t:dbg.verbose, '.lines -e')
   call dbg#read(t:dbg.verbose)
   call dbg#write(t:dbg.verbose, 'l+s')
@@ -54,33 +56,39 @@ function! s:engine.open(target)
   call s:comment('for example:')
   call s:comment('> bp WinMain')
   call s:comment('> g')
+  call s:comment('')
+  call s:comment('search symbols:')
+  call s:comment('> x ' . t:dbg.target_name . '!main')
+  call s:comment('')
   call s:comment('-----------------------------------------------')
   call dbg#insert()
 endfunction
 
+function! s:engine.run()
+  call dbg#write(0, 'g')
+  call dbg#read(0)
+  call s:engine.sync()
+endfunction
+
 function! s:engine.next()
-  call dbg#focusIn()
   call dbg#write(0, 'p')
   call dbg#read(0)
   call s:engine.sync()
 endfunction
 
 function! s:engine.step()
-  call dbg#focusIn()
   call dbg#write(0, 't')
   call dbg#read(0)
   call s:engine.sync()
 endfunction
 
 function! s:engine.continue()
-  call dbg#focusIn()
   call dbg#write(0, 'g')
   call dbg#read(0)
   call s:engine.sync()
 endfunction
 
 function! s:engine.stepout()
-  call dbg#focusIn()
   call dbg#write(0, 'k')
   let lines = dbg#read(0)
   for line in lines
@@ -96,11 +104,19 @@ function! s:engine.stepout()
   endfor
 endfunction
 
-function! s:engine.print()
-  let word = expand("<cword>")
+function! s:engine.print(...)
+  if len(a:000) > 0
+    let word = a:1
+  endif
+  if word == ''
+    let word = expand("<cword>")
+  endif
   call dbg#focusIn()
   call dbg#write(1, printf('dt %s', word))
   call dbg#read(1)
+  call cursor('$',0)
+  redraw
+  call dbg#focusBack()
 endfunction
 
 function! s:engine.breakpoint()
@@ -113,24 +129,30 @@ function! s:engine.breakpoint()
     \ line
     \ ))
   call dbg#read(1)
+  call cursor('$',0)
+  redraw
+  call dbg#focusBack()
 endfunction
 
 function! s:engine.locals()
   call dbg#focusIn()
   call dbg#write(1, 'dv')
   call dbg#read(1)
+  call dbg#focusBack()
 endfunction
 
 function! s:engine.threads()
   call dbg#focusIn()
   call dbg#write(1, '~')
   call dbg#read(1)
+  call dbg#focusBack()
 endfunction
 
 function! s:engine.callstack()
   call dbg#focusIn()
   call dbg#write(1, 'kb')
   call dbg#read(1)
+  call dbg#focusBack()
 endfunction
 
 function! s:engine.sync()
@@ -158,17 +180,13 @@ function! s:engine.sync()
       endif
     endif
   endif
-
-  if exists == 0
-    call setline(t:dbg.lnum, lines)
-    let t:dbg.lnum = t:dbg.lnum + len(lines)
-  endif
 endfunction
 
 function! s:engine.close()
   call dbg#focusIn()
   call dbg#write(1, 'q')
   call dbg#read(1)
+  call dbg#focusBack()
 endfunction
 
 " internal functions
@@ -176,5 +194,18 @@ endfunction
 function! s:comment(msg)
   call dbg#write(1, '*' . a:msg)
   call dbg#read(1)
+endfunction
+
+function! s:resolveModuleName()
+  call dbg#write(0, 'lm')
+  let lines = dbg#read(0)
+  if len(lines) > 1
+    let line = lines[1]
+    let top = matchend(line, '\x\{8}\(`\x\{8}\)\{0,1} \x\{8}\(`\x\{8}\)\{0,1}\s\+')
+    let end = match(line, '\s\+(.*)')
+    if top != -1 && end != -1
+      let t:dbg.target_name = line[ top : end-1 ]
+    endif
+  endif
 endfunction
 

@@ -40,6 +40,13 @@ function! dbg#command()
   call s:command()
 endfunction
 
+function! dbg#run()
+  if !exists('t:dbg.engine')
+    return
+  endif
+  call t:dbg.engine.run()
+endfunction
+
 function! dbg#next()
   if !exists('t:dbg.engine')
     return
@@ -68,11 +75,11 @@ function! dbg#stepout()
   call t:dbg.engine.stepout()
 endfunction
 
-function! dbg#print()
+function! dbg#print(...)
   if !exists('t:dbg.engine')
     return
   endif
-  call t:dbg.engine.print()
+  call t:dbg.engine.print(join(a:000, ' '))
 endfunction
 
 function! dbg#breakpoint()
@@ -118,6 +125,7 @@ function! dbg#focusIn()
     return
   endif
 
+  let t:dbg.old_winnum = winnr()
   let winnum = winnr('$')
   for winno in range(1, winnum)
     let bufname = bufname(winbufnr(winno))
@@ -145,6 +153,15 @@ function! dbg#focusIn()
   sign define dbg_cur text=>
   sign define dbg_bp  text=!
 
+  command! -nargs=0 GdbMode :call dbg#gdbMode()
+
+endfunction
+
+function! dbg#focusBack()
+  if exists('t:dbg.old_winnum')
+    exe t:dbg.old_winnum . "wincmd w"
+    unlet t:dbg.old_winnum
+  endif
 endfunction
 
 function! dbg#openSource(path, line)
@@ -238,7 +255,9 @@ function! dbg#read(output)
       let t:dbg.line = t:dbg.line . res
     endif
   endwhile
-  call cursor('$',0)
+  if a:output == 1
+    call cursor('$',0)
+  endif
   return ret_lines
 endfunction
 
@@ -258,7 +277,9 @@ function! dbg#write(output, cmd)
   if exists('t:dbg.engine.post_write')
     call t:dbg.engine.post_write(cmd)
   endif
-  call cursor('$',0)
+  if a:output == 1
+    call cursor('$',0)
+  endif
 endfunction
 
 function! s:default_keymap()
@@ -273,15 +294,83 @@ function! s:default_keymap()
   nnoremap <Plug>(dbg-callstack)   :<C-u>call dbg#callstack()<CR>
 
   if !exists('g:dbg#disable_default_keymap') || g:dbg#disable_default_keymap == 0
-    nmap <buffer><F5>    <Plug>(dbg-continue)
-    nmap <buffer><F9>    <Plug>(dbg-breakpoint)
-    nmap <buffer><F10>   <Plug>(dbg-next)
-    nmap <buffer><F11>   <Plug>(dbg-step)
-    nmap <buffer><S-F11> <Plug>(dbg-stepout)
-    nmap <buffer><F2>    <Plug>(dbg-print)
-    nmap <buffer><F6>    <Plug>(dbg-locals)
-    nmap <buffer><F7>    <Plug>(dbg-threads)
-    nmap <buffer><F8>    <Plug>(dbg-callstack)
+    nmap <F5>    <Plug>(dbg-continue)
+    nmap <F9>    <Plug>(dbg-breakpoint)
+    nmap <F10>   <Plug>(dbg-next)
+    nmap <F11>   <Plug>(dbg-step)
+    nmap <S-F11> <Plug>(dbg-stepout)
+    nmap <F2>    <Plug>(dbg-print)
+    nmap <F6>    <Plug>(dbg-locals)
+    nmap <F7>    <Plug>(dbg-threads)
+    nmap <F8>    <Plug>(dbg-callstack)
   endif
+endfunction
+
+let s:gdbCommands = [
+  \ {'name':'run',           'param':0,'fn':'dbg#run'},
+  \ {'name':'next',          'param':0,'fn':'dbg#next'},
+  \ {'name':'step',          'param':0,'fn':'dbg#step'},
+  \ {'name':'continue',      'param':0,'fn':'dbg#continue'},
+  \ {'name':'finish',        'param':0,'fn':'dbg#stepout'},
+  \ {'name':'print',         'param':1,'fn':'dbg#print'},
+  \ {'name':'info locals',   'param':0,'fn':'dbg#locals'},
+  \ {'name':'info threads',  'param':0,'fn':'dbg#threads'},
+  \ {'name':'info bt',       'param':0,'fn':'dbg#backtrace'},
+  \ {'name':'where',         'param':0,'fn':'dbg#backtrace'},
+  \ {'name':'backtrace',     'param':0,'fn':'dbg#backtrace'}
+  \ ]
+function! dbg#gdbCommandLine(A, L, P)
+  let items = []
+  for item in s:gdbCommands
+    if item.name =~ '^' . a:A
+      call add(items, item.name)
+    endif
+  endfor
+  return items
+endfunction
+
+function! dbg#gdbMode()
+  cnoremap <ESC> <c-u>end<CR>
+  redraw
+  let cmd = input('(gdb) ', '', 'customlist,dbg#gdbCommandLine')
+  if cmd == ''
+    if exists('t:dbg_gdb_mode_last_cmd')
+      call dbg#gdbCommand(t:dbg_gdb_mode_last_cmd)
+    endif
+  else
+    if cmd =~ '^end'
+      cnoremap <ESC> <ESC>
+      redraw
+      echo '(gdb) good bye !!'
+      return
+    endif
+    call dbg#gdbCommand(cmd)
+    let t:dbg_gdb_mode_last_cmd = cmd
+  endif
+  call dbg#gdbMode()
+endfunction
+
+function! dbg#gdbCommand(cmd)
+  let params = split(a:cmd, '\s')
+  let cmd = params[0]
+  if cmd == 'info'
+    let cmd = join(params[0 : 1], ' ')
+    let param = join(params[2 : ], ' ')
+  else
+    let param = join(params[1 : ], ' ')
+  endif
+
+  for item in s:gdbCommands
+    if item.name =~ '^' . cmd
+      if item.param == 1
+        call function(item.fn)(param)
+      else
+        call function(item.fn)()
+      endif
+      return
+    endif
+  endfor
+
+  echo 'unknown command [' . cmd . ']'
 endfunction
 
