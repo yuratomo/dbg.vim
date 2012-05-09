@@ -154,6 +154,9 @@ function! dbg#focusIn()
   sign define dbg_bp  text=!
 
   command! -nargs=0 GdbMode :call dbg#gdbMode()
+  nnoremap <buffer><c-c> :<c-u>call dbg#control(3)<CR>
+  "inoremap <expr><buffer><c-c> dbg#control(3)  ... error. but why?
+  inoremap <buffer><c-c> <ESC>:call dbg#control(3)<CR>a
 
 endfunction
 
@@ -223,7 +226,7 @@ function! dbg#insert()
 endfunction
 
 function! dbg#read(output)
-  let ret_lines = []
+  let t:dbg.last_readed_list = []
   while !t:dbg.pipe.stdout.eof
     let res = t:dbg.pipe.stdout.read()
     if res == ''
@@ -236,10 +239,10 @@ function! dbg#read(output)
       endif
       if a:output == 1
         call setline(t:dbg.lnum, lines)
+        call cursor('$',0)
         let t:dbg.lnum = t:dbg.lnum + len(lines)
-      else
-        call extend(ret_lines, lines)
       endif
+      call extend(t:dbg.last_readed_list, lines)
       redraw
       if midx != -1
         let t:dbg.line = t:dbg.line[ last : ]
@@ -255,10 +258,7 @@ function! dbg#read(output)
       let t:dbg.line = t:dbg.line . res
     endif
   endwhile
-  if a:output == 1
-    call cursor('$',0)
-  endif
-  return ret_lines
+  return t:dbg.last_readed_list
 endfunction
 
 function! dbg#write(output, cmd)
@@ -280,6 +280,13 @@ function! dbg#write(output, cmd)
   if a:output == 1
     call cursor('$',0)
   endif
+  return ''
+endfunction
+
+function! dbg#control(n)
+  call dbg#write(2, nr2char(a:n))
+  call dbg#read(1)
+  return ''
 endfunction
 
 function! s:default_keymap()
