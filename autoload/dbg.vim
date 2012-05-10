@@ -86,6 +86,33 @@ function! dbg#breakpoint()
   if !exists('t:dbg.engine')
     return
   endif
+
+  let path = expand('%:p')
+  let line = line('.')
+  if !exists('t:dbg.breakpoints')
+    let t:dbg.breakpoints = []
+  endif
+  let idx = 0
+  let exists = -1
+  for bp in t:dbg.breakpoints
+    if bp.path == path && bp.line == line
+      let exists = idx
+    endif
+    let idx += 1
+  endfor
+  if exists != -1
+    call remove(t:dbg.breakpoints, idx)
+  else
+    call add(t:dbg.breakpoints, {'path':path, 'line':line } )
+  endif
+  try
+    exe ':sign unplace dbg_bp'
+  catch /.*/
+  endtry
+  for bp in t:dbg.breakpoints
+    exe ':sign place 3 name=dbg_bp line=' . bp.line . ' file=' . bp.path
+  endfor
+
   call t:dbg.engine.breakpoint()
 endfunction
 
@@ -314,17 +341,17 @@ function! s:default_keymap()
 endfunction
 
 let s:gdbCommands = [
-  \ {'name':'run',           'param':0,'fn':'dbg#run'},
-  \ {'name':'next',          'param':0,'fn':'dbg#next'},
-  \ {'name':'step',          'param':0,'fn':'dbg#step'},
-  \ {'name':'continue',      'param':0,'fn':'dbg#continue'},
-  \ {'name':'finish',        'param':0,'fn':'dbg#stepout'},
-  \ {'name':'print',         'param':1,'fn':'dbg#print'},
-  \ {'name':'info locals',   'param':0,'fn':'dbg#locals'},
-  \ {'name':'info threads',  'param':0,'fn':'dbg#threads'},
-  \ {'name':'info bt',       'param':0,'fn':'dbg#backtrace'},
-  \ {'name':'where',         'param':0,'fn':'dbg#backtrace'},
-  \ {'name':'backtrace',     'param':0,'fn':'dbg#backtrace'}
+  \ {'name':'run',          'param':0, 'fn':'dbg#run'},
+  \ {'name':'next',         'param':0, 'fn':'dbg#next'},
+  \ {'name':'step',         'param':0, 'fn':'dbg#step'},
+  \ {'name':'continue',     'param':0, 'fn':'dbg#continue'},
+  \ {'name':'finish',       'param':0, 'fn':'dbg#stepout'},
+  \ {'name':'print',        'param':1, 'fn':'dbg#print'},
+  \ {'name':'info locals',  'param':0, 'fn':'dbg#locals'},
+  \ {'name':'info threads', 'param':0, 'fn':'dbg#threads'},
+  \ {'name':'info bt',      'param':0, 'fn':'dbg#backtrace'},
+  \ {'name':'where',        'param':0, 'fn':'dbg#backtrace'},
+  \ {'name':'backtrace',    'param':0, 'fn':'dbg#backtrace'}
   \ ]
 function! dbg#gdbCommandLine(A, L, P)
   let items = []
