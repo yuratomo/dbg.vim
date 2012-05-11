@@ -177,8 +177,8 @@ function! dbg#focusIn()
     exe 'au BufDelete <buffer> call dbg#close()'
   augroup END
 
-  sign define dbg_cur text=>
-  sign define dbg_bp  text=!
+  sign define dbg_cur text=>>
+  sign define dbg_bp  text=!!
 
   command! -nargs=0 GdbMode :call dbg#gdbMode()
   nnoremap <buffer><c-c> :<c-u>call dbg#control(3)<CR>

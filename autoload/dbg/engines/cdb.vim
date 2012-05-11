@@ -40,7 +40,7 @@ function! s:engine.open(target)
     return
   endif
 
-  call s:resolveModuleName()
+  call s:resolveModuleName(t:dbg.target_name)
 
   call dbg#write(t:dbg.verbose, '.lines -e')
   call dbg#read(t:dbg.verbose)
@@ -58,7 +58,7 @@ function! s:engine.open(target)
   call s:comment('> g')
   call s:comment('')
   call s:comment('search symbols:')
-  call s:comment('> x ' . t:dbg.target_name . '!main')
+  call s:comment('> x ' . t:dbg.target_name . '!*main*')
   call s:comment('')
   call s:comment('-----------------------------------------------')
   call dbg#insert()
@@ -189,6 +189,30 @@ function! s:engine.close()
   call dbg#focusBack()
 endfunction
 
+function! s:engine.post_write(cmd)
+  if exists('t:dbg_processing_now')
+    return
+  endif
+  let t:dbg_processing_now = 0
+
+  if a:cmd =~ '.restart'
+    if exists('t:dbg.breakpoints')
+      for bp in t:dbg.breakpoints
+        call dbg#write(1, printf('bp `%s!%s:%d`',
+          \ t:dbg.target_name,
+          \ bp.path,
+          \ bp.line
+          \ ))
+        call dbg#read(1)
+        call cursor('$',0)
+        redraw
+      endfor
+    endif
+  endif
+
+  unlet t:dbg_processing_now
+endfunction
+
 " internal functions
 
 function! s:comment(msg)
@@ -196,16 +220,16 @@ function! s:comment(msg)
   call dbg#read(1)
 endfunction
 
-function! s:resolveModuleName()
+function! s:resolveModuleName(target)
   call dbg#write(0, 'lm')
   let lines = dbg#read(0)
-  if len(lines) > 1
-    let line = lines[1]
+  for line in lines
     let top = matchend(line, '\x\{8}\(`\x\{8}\)\{0,1} \x\{8}\(`\x\{8}\)\{0,1}\s\+')
     let end = match(line, '\s\+(.*)')
-    if top != -1 && end != -1
+    if top != -1 && end != -1 && stridx(top, a:target) == 0
       let t:dbg.target_name = line[ top : end-1 ]
+      break
     endif
-  endif
+  endfor
 endfunction
 
