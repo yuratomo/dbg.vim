@@ -39,19 +39,20 @@ function! s:engine.open(target)
     return
   endif
 
-  "resolv base directory
-  call dbg#write(0, 'info source')
-  let lines = dbg#read(0)
-  for line in lines
-    let start = matchend(line, 'Compilation directory is ')
-    if start != -1
-      let t:dbg._base_dir = line[ start : ]
-    endif
-  endfor
+" "resolv base directory
+" call dbg#write(0, 'info sources')
+" let lines = dbg#read(0)
+" for line in lines
+"   let start = matchend(line, 'Compilation directory is ')
+"   if start != -1
+"     let t:dbg._base_dir = line[ start : ]
+"   endif
+" endfor
 
   call s:comment('-----------------------------------------------')
   call s:comment('         Welcom to dbg.vim (GDB MODE)')
-  call s:comment('base directory is ' .  t:dbg._base_dir)
+  call s:comment(join([g:dbg#command_gdb, a:target], ' '))
+" call s:comment('base directory is ' .  t:dbg._base_dir)
   call s:comment('')
   call s:comment('!! You will need to set the first breakpoint')
   call s:comment('and run the target program.')
@@ -144,21 +145,31 @@ function! s:engine.callstack()
 endfunction
 
 function! s:engine.sync()
+  let path = ''
+  call dbg#write(0, 'info source')
+  let lines = dbg#read(0)
+  for line in lines
+    let start = matchend(line, 'Located in ')
+    if start != -1
+      let path = line[ start : ]
+      break
+    endif
+  endfor
+  if path == '' || !filereadable(path)
+    return
+  endif
+
   call dbg#write(0, 'where')
   let lines = dbg#read(0)
   if len(lines) >= 1
     let start = match(lines[0], ' at .*:\d\+')
     if start != -1
-      let start = start + 4
+"     let start = start + 4
       let mid   = strridx(lines[0], ':')
-      let name  = lines[0][start : mid-1]
+"     let name  = lines[0][start : mid-1]
       let num   = lines[0][mid+1 :      ]
-      let path  = t:dbg._base_dir . '/' . name
-      if filereadable(path)
-        call dbg#openSource(path, num)
-      else
-        echoerr path . ' is not readable.'
-      endif
+"     let path  = t:dbg._base_dir . '/' . name
+      call dbg#openSource(path, num)
     endif
   endif
 endfunction
@@ -176,7 +187,9 @@ endfunction
 " internal functions
 
 function! s:comment(msg)
-  call dbg#write(0, 'echo ' . a:msg)
+  call dbg#write(1, '*' . a:msg)
+  call dbg#read(0)
+  call dbg#write(0, '')
   call dbg#read(1)
 endfunction
 
