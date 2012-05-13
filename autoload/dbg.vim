@@ -7,7 +7,6 @@ function! dbg#open(mode, ...)
     call dbg#close()
   endif
 
-  "if !exists('*vimproc#system()')
   if !exists('g:loaded_vimproc')
     echoerr "dbg.vim is depend on vimproc. Please install it."
     return
