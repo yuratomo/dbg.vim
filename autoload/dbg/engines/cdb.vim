@@ -2,20 +2,9 @@
 let s:engine = dbg#initEngine('cdb')
 
 function! dbg#engines#cdb#init()
-  call s:engine.prepare()
-endfunction
-
-function! s:engine.prepare()
-  let t:dbg = {
+  return {
     \ 'prompt'      : '\d:\d\{3}\(:\w\+\)\{0,1}> ',
-    \ 'verbose'     : 0,
-    \ 'lnum'        : 1,
-    \ 'line'        : '',
-    \ 'target_name' : '',
-    \ 'lastCommand' : '',
-    \ 'sign_id'     : 1,
-    \ 'engine'      : s:engine,
-    \ 'pipe'        : {},
+    \ 'engine'      : s:engine
     \ }
 endfunction
 

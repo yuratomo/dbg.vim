@@ -25,7 +25,20 @@ function! dbg#open(mode, ...)
     return
   endif
 
-  call dbg#engines#{a:mode}#init()
+  let dbg_per_engine = dbg#engines#{a:mode}#init()
+  let t:dbg = {
+    \ 'prompt'      : '> ',
+    \ 'verbose'     : 0,
+    \ 'lnum'        : 1,
+    \ 'line'        : '',
+    \ 'lastCommand' : '',
+    \ 'sign_id'     : 1,
+    \ 'engine'      : {},
+    \ 'pipe'        : {},
+    \ }
+  call extend(t:dbg, dbg_per_engine)
+
+
   call t:dbg.engine.open(a:000)
 
   call s:default_keymap()

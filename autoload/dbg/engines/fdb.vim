@@ -2,19 +2,9 @@
 let s:engine = dbg#initEngine('fdb')
 
 function! dbg#engines#fdb#init()
-  call s:engine.prepare()
-endfunction
-
-function! s:engine.prepare()
-  let t:dbg = {
+  return {
     \ 'prompt'      : '(fdb) ',
-    \ 'verbose'     : 0,
-    \ 'lnum'        : 1,
-    \ 'line'        : '',
-    \ 'lastCommand' : '',
-    \ 'sign_id'     : 1,
     \ 'engine'      : s:engine,
-    \ 'pipe'        : {},
     \ '_base_dir'   : expand('%:p:h')
     \ }
 endfunction

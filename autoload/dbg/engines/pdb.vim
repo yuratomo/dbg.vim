@@ -2,19 +2,9 @@
 let s:engine = dbg#initEngine('pdb')
 
 function! dbg#engines#pdb#init()
-  call s:engine.prepare()
-endfunction
-
-function! s:engine.prepare()
-  let t:dbg = {
+  return {
     \ 'prompt'      : '(Pdb) ',
-    \ 'verbose'     : 0,
-    \ 'lnum'        : 1,
-    \ 'line'        : '',
-    \ 'lastCommand' : '',
-    \ 'sign_id'     : 1,
-    \ 'engine'      : s:engine,
-    \ 'pipe'        : {},
+    \ 'engine'      : s:engine
     \ }
 endfunction
 
