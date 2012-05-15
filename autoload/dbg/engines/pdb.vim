@@ -11,7 +11,6 @@ function! s:engine.prepare()
     \ 'verbose'     : 0,
     \ 'lnum'        : 1,
     \ 'line'        : '',
-    \ 'target_name' : '',
     \ 'lastCommand' : '',
     \ 'sign_id'     : 1,
     \ 'engine'      : s:engine,
@@ -20,24 +19,10 @@ function! s:engine.prepare()
 endfunction
 
 function! s:engine.open(target)
-  if exists('t:dbg.pipe')
-    unlet t:dbg.pipe
-  endif
-
-  call dbg#focusIn()
-
-  let t:dbg.target_name = a:target
-
-  let t:dbg.pipe = vimproc#popen3([g:dbg#command_python, '-m', 'pdb', a:target])
-  call dbg#read(1)
-  if t:dbg.pipe.stdout.eof
-    let lines = split(t:dbg.line, "\n")
-    call setline(t:dbg.lnum, lines)
-    let t:dbg.line = ''
-    call cursor('$',0)
-    return
-  endif
-  "call t:dbg.pipe.set_winsize(winwidth(0), winheight(0))
+  let params = []
+  call extend(params, ['-m', 'pdb'])
+  call extend(params, a:params)
+  call dbg#popen(g:dbg#command_python, params)
 
   call s:comment('-----------------------------------------------')
   call s:comment('         Welcom to dbg.vim (PDB MODE)')

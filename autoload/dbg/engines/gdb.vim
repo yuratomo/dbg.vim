@@ -11,49 +11,18 @@ function! s:engine.prepare()
     \ 'verbose'     : 0,
     \ 'lnum'        : 1,
     \ 'line'        : '',
-    \ 'target_name' : '',
     \ 'lastCommand' : '',
     \ 'sign_id'     : 1,
     \ 'engine'      : s:engine,
     \ 'pipe'        : {},
-    \ '_base_dir'   : expand('%:p:h')
     \ }
 endfunction
 
-function! s:engine.open(target)
-  if exists('t:dbg.pipe')
-    unlet t:dbg.pipe
-  endif
-
-  call dbg#focusIn()
-
-  let t:dbg.target_name = a:target
-
-  let t:dbg.pipe = vimproc#popen3([g:dbg#command_gdb, a:target])
-  call dbg#read(1)
-  if t:dbg.pipe.stdout.eof
-    let lines = split(t:dbg.line, "\n")
-    call setline(t:dbg.lnum, lines)
-    let t:dbg.line = ''
-    call cursor('$',0)
-    return
-  endif
-
-" "resolv base directory
-" call dbg#write(0, 'info sources')
-" let lines = dbg#read(0)
-" for line in lines
-"   let start = matchend(line, 'Compilation directory is ')
-"   if start != -1
-"     let t:dbg._base_dir = line[ start : ]
-"   endif
-" endfor
+function! s:engine.open(params)
+  call dbg#popen(g:dbg#command_gdb, a:params)
 
   call s:comment('-----------------------------------------------')
   call s:comment('         Welcom to dbg.vim (GDB MODE)')
-  call s:comment(join([g:dbg#command_gdb, a:target], ' '))
-" call s:comment('base directory is ' .  t:dbg._base_dir)
-  call s:comment('')
   call s:comment('!! You will need to set the first breakpoint')
   call s:comment('and run the target program.')
   call s:comment('')

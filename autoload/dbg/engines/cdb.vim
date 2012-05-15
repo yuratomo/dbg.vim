@@ -19,28 +19,10 @@ function! s:engine.prepare()
     \ }
 endfunction
 
-function! s:engine.open(target)
-  if exists('t:dbg.pipe')
-    unlet t:dbg.pipe
-  endif
+function! s:engine.open(params)
+  call dbg#popen(g:dbg#command_cdb, a:params)
 
-  call dbg#focusIn()
-
-  let start = strridx(a:target, '\')
-  let end = strridx(a:target, '.')
-  let t:dbg.target_name = strpart(a:target, start+1, end-start-1)
-
-  let t:dbg.pipe = vimproc#popen3([g:dbg#command_cdb, a:target])
-  call dbg#read(1)
-  if t:dbg.pipe.stdout.eof
-    let lines = split(t:dbg.line, "\n")
-    call setline(t:dbg.lnum, lines)
-    let t:dbg.line = ''
-    call cursor('$',0)
-    return
-  endif
-
-  call s:resolveModuleName(t:dbg.target_name)
+  call s:resolveModuleName()
 
   call dbg#write(t:dbg.verbose, '.lines -e')
   call dbg#read(t:dbg.verbose)
@@ -48,18 +30,37 @@ function! s:engine.open(target)
   call dbg#read(t:dbg.verbose)
   call dbg#write(t:dbg.verbose, 'l+t')
   call dbg#read(t:dbg.verbose)
+
+  " estimate main function
+  call dbg#write(0, 'x ' . t:dbg.target_name . '!*main*')
+  let lines = dbg#read(0)
+  let estimate_main = ''
+  for line in lines
+    let start = match(line, '!.*ain (')
+    if start != -1
+      let end = stridx(line, ' (')
+      let estimate_main = line[ start+1 : end-1 ]
+    endif
+  endfor
+
   call s:comment('-----------------------------------------------')
   call s:comment('         Welcom to dbg.vim (CDB MODE)')
-  call s:comment('!! You will need to set the first breakpoint')
-  call s:comment('and run the target program.')
   call s:comment('')
-  call s:comment('for example:')
-  call s:comment('> bp WinMain')
+  if estimate_main == ''
+    call s:comment('!! You will need to set the first breakpoint')
+    call s:comment('and run the target program.')
+    call s:comment('')
+    call s:comment('for example:')
+    call s:comment('> bp ' . estimate_main)
+  else
+    call dbg#write(0, 'bp ' . estimate_main)
+    call dbg#read(0)
+    call s:comment('!! dbg.vim set the break point at "' . t:dbg.target_name . '!' . estimate_main . '"')
+    call s:comment('You will need to run the target program.')
+    call s:comment('')
+    call s:comment('for example:')
+  endif
   call s:comment('> g')
-  call s:comment('')
-  call s:comment('search symbols:')
-  call s:comment('> x ' . t:dbg.target_name . '!*main*')
-  call s:comment('')
   call s:comment('-----------------------------------------------')
   call dbg#insert()
 endfunction
@@ -220,13 +221,15 @@ function! s:comment(msg)
   call dbg#read(1)
 endfunction
 
-function! s:resolveModuleName(target)
+function! s:resolveModuleName()
+  call dbg#write(0, 'ld *')
+  let lines = dbg#read(0)
   call dbg#write(0, 'lm')
   let lines = dbg#read(0)
   for line in lines
     let top = matchend(line, '\x\{8}\(`\x\{8}\)\{0,1} \x\{8}\(`\x\{8}\)\{0,1}\s\+')
     let end = match(line, '\s\+(.*)')
-    if top != -1 && end != -1 && stridx(top, a:target) == 0
+    if top != -1 && end != -1 && stridx(line, 'pdb symbols)') > 0
       let t:dbg.target_name = line[ top : end-1 ]
       break
     endif

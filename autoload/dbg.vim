@@ -2,9 +2,22 @@
 " Last Modified: 2012.05.06
 " Author: yuratomo (twitter @yusetomo)
 
+function! dbg#usage()
+  echo '[usage]'
+  echo 'Dbg [cdb|gdb|jdb|fdb] [params]+'
+  echo ''
+  echo 'ex1) cdb'
+  echo 'Dbg cdb c:\hoge\aaa.exe'
+  echo ''
+endfunction
+
 function! dbg#open(mode, ...)
   if exists('t:dbg')
     call dbg#close()
+  endif
+  if len(a:000) == 0
+    call dbg#usage()
+    return
   endif
 
   if !exists('g:loaded_vimproc')
@@ -13,9 +26,31 @@ function! dbg#open(mode, ...)
   endif
 
   call dbg#engines#{a:mode}#init()
-  call t:dbg.engine.open(join(a:000, ' '))
+  call t:dbg.engine.open(a:000)
 
   call s:default_keymap()
+endfunction
+
+function! dbg#popen(cmd, params)
+  if exists('t:dbg.pipe')
+    unlet t:dbg.pipe
+  endif
+
+  call dbg#focusIn()
+
+  let cmd_params = []
+  call add(cmd_params, a:cmd)
+  call extend(cmd_params, a:params)
+
+  let t:dbg.pipe = vimproc#popen3(cmd_params)
+  call dbg#read(1)
+  if t:dbg.pipe.stdout.eof
+    let lines = split(t:dbg.line, "\n")
+    call setline(t:dbg.lnum, lines)
+    let t:dbg.line = ''
+    call cursor('$',0)
+    return
+  endif
 endfunction
 
 function! dbg#close()
@@ -24,6 +59,7 @@ function! dbg#close()
   endif
   try
     call t:dbg.engine.close()
+    call t:dbg.close()
   catch /.*/
   endtry
   unlet t:dbg.engine
