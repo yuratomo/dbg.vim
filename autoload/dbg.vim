@@ -130,13 +130,22 @@ function! dbg#print(...)
   call t:dbg.engine.print(join(a:000, ' '))
 endfunction
 
-function! dbg#breakpoint()
+function! dbg#breakpoint(...)
   if !exists('t:dbg.engine')
     return
   endif
 
-  let path = expand('%:p')
-  let line = line('.')
+  if len(a:000) >= 1
+    let colon = strridx(a:000[0], ':')
+    if colon == -1
+      return
+    endif
+    let path = string(a:000[0][0 : colon-1])
+    let line = string(a:000[0][colon+1 :  ])
+  else
+    let path = expand('%:p')
+    let line = line('.')
+  endif
   if !exists('t:dbg.breakpoints')
     let t:dbg.breakpoints = []
   endif
@@ -161,7 +170,7 @@ function! dbg#breakpoint()
     exe ':sign place 3 name=dbg_bp line=' . bp.line . ' file=' . bp.path
   endfor
 
-  call t:dbg.engine.breakpoint()
+  call t:dbg.engine.breakpoint(path, line)
 endfunction
 
 function! dbg#locals()
@@ -228,7 +237,6 @@ function! dbg#focusIn()
   sign define dbg_cur text=>>
   sign define dbg_bp  text=!!
 
-  command! -nargs=0 GdbMode :call dbg#gdbMode()
   nnoremap <buffer><c-c> :<c-u>call dbg#control(3)<CR>
   "inoremap <expr><buffer><c-c> dbg#control(3)  ... error. but why?
   inoremap <buffer><c-c> <ESC>:call dbg#control(3)<CR>a
@@ -281,7 +289,9 @@ function! s:command()
   let last = matchend(line, t:dbg.prompt)
   if last != -1
     call dbg#write(2, line[ last : ])
-    call dbg#read(1)
+    if t:dbg.lastCommand[0] != '@'
+      call dbg#read(1)
+    endif
     if t:dbg.pipe.stdout.eof
       let lines = split(t:dbg.line, "\n")
       call setline(t:dbg.lnum, lines)
@@ -342,9 +352,17 @@ function! dbg#write(output, cmd)
   else
     let cmd = a:cmd
   endif
-  call t:dbg.pipe.stdin.write(cmd . "\r\n")
-  if a:output == 1
-    call setline(t:dbg.lnum-1, getline('$') . cmd)
+  if cmd[0] == '@'
+    call dbg#gdbCommand(cmd[ 1 : ])
+    let line = getline('$')
+    let last = matchend(line, t:dbg.prompt)
+    call setline(t:dbg.lnum, line[ 0 : last-1 ])
+    let t:dbg.lnum += 1
+  else
+    call t:dbg.pipe.stdin.write(cmd . "\r\n")
+    if a:output == 1
+      call setline(t:dbg.lnum-1, getline('$') . cmd)
+    endif
   endif
   if a:output == 2
     let t:dbg.lastCommand = cmd
@@ -395,42 +413,13 @@ let s:gdbCommands = [
   \ {'name':'continue',     'param':0, 'fn':'dbg#continue'},
   \ {'name':'finish',       'param':0, 'fn':'dbg#stepout'},
   \ {'name':'print',        'param':1, 'fn':'dbg#print'},
+  \ {'name':'break',        'param':1, 'fn':'dbg#breakpoint'},
   \ {'name':'info locals',  'param':0, 'fn':'dbg#locals'},
   \ {'name':'info threads', 'param':0, 'fn':'dbg#threads'},
   \ {'name':'info bt',      'param':0, 'fn':'dbg#backtrace'},
   \ {'name':'where',        'param':0, 'fn':'dbg#backtrace'},
   \ {'name':'backtrace',    'param':0, 'fn':'dbg#backtrace'}
   \ ]
-function! dbg#gdbCommandLine(A, L, P)
-  let items = []
-  for item in s:gdbCommands
-    if item.name =~ '^' . a:A
-      call add(items, item.name)
-    endif
-  endfor
-  return items
-endfunction
-
-function! dbg#gdbMode()
-  cnoremap <ESC> <c-u>end<CR>
-  redraw
-  let cmd = input('(gdb) ', '', 'customlist,dbg#gdbCommandLine')
-  if cmd == ''
-    if exists('t:dbg_gdb_mode_last_cmd')
-      call dbg#gdbCommand(t:dbg_gdb_mode_last_cmd)
-    endif
-  else
-    if cmd =~ '^end'
-      cnoremap <ESC> <ESC>
-      redraw
-      echo '(gdb) good bye !!'
-      return
-    endif
-    call dbg#gdbCommand(cmd)
-    let t:dbg_gdb_mode_last_cmd = cmd
-  endif
-  call dbg#gdbMode()
-endfunction
 
 function! dbg#gdbCommand(cmd)
   let params = split(a:cmd, '\s')

@@ -109,9 +109,14 @@ function! s:engine.print(...)
   call dbg#focusBack()
 endfunction
 
-function! s:engine.breakpoint()
-  let path = expand('%:p')
-  let line = line('.')
+function! s:engine.breakpoint(...)
+  if len(a:000) >= 2
+    let path = a:000[0]
+    let line = a:000[1]
+  else
+    let path = expand('%:p')
+    let line = line('.')
+  endif
   call dbg#focusIn()
   call dbg#write(1, printf('bp `%s!%s:%d`',
     \ t:dbg.target_name,

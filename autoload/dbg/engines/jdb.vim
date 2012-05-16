@@ -82,15 +82,20 @@ function! s:engine.print(...)
   call dbg#focusBack()
 endfunction
 
-function! s:engine.breakpoint()
-  let path = expand('%:p:r')
+function! s:engine.breakpoint(...)
+  if len(a:000) >= 2
+    let path = a:000[0]
+    let line = a:000[1]
+  else
+    let path = expand('%:p')
+    let line = line('.')
+  endif
   let start = len(t:dbg._base_dir)
   if len(path) <= start
     echoerr "illegal source code???"
     return
   endif
   let class = substitute(path[ start+1 : ], '\', '/', 'g')
-  let line = line('.')
   call dbg#focusIn()
   call dbg#write(1, printf('stop at %s:%d',
     \ class,
