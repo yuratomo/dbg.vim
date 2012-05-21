@@ -79,19 +79,22 @@ function! s:engine.continue()
 endfunction
 
 function! s:engine.stepout()
-  call dbg#write(0, 'k')
-  let lines = dbg#read(0)
-  for line in lines
-    if match(line, '\x\{8} \x\{8}') == 0 || match(line, '\x\{16} \x\{16}') == 0
-      let parts = split(line, ' ')
-      if len(parts) > 1
-        call dbg#write(0, 'g '. parts[1])
-        call dbg#read(0)
-        call s:engine.sync()
-        break
-      endif
-    endif
-  endfor
+" call dbg#write(0, 'k')
+" let lines = dbg#read(0)
+" for line in lines
+"   if match(line, '\x\{8} \x\{8}') == 0 || match(line, '\x\{16} \x\{16}') == 0
+"     let parts = split(line, ' ')
+"     if len(parts) > 1
+"       call dbg#write(0, 'g '. parts[1])
+"       call dbg#read(0)
+"       call s:engine.sync()
+"       break
+"     endif
+"   endif
+" endfor
+  call dbg#write(0, 'gu')
+  call dbg#read(0)
+  call s:engine.sync()
 endfunction
 
 function! s:engine.print(...)

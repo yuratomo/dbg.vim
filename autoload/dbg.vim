@@ -140,8 +140,11 @@ function! dbg#breakpoint(...)
     if colon == -1
       return
     endif
-    let path = string(a:000[0][0 : colon-1])
-    let line = string(a:000[0][colon+1 :  ])
+    let path = a:000[0][0 : colon-1]
+    let line = a:000[0][colon+1 :  ]
+    let lastline = getline('$')
+    let last = matchend(lastline, t:dbg.prompt)
+    call setline(t:dbg.lnum, lastline[ 0 : last-1 ])
   else
     let path = expand('%:p')
     let line = line('.')
@@ -167,7 +170,10 @@ function! dbg#breakpoint(...)
   catch /.*/
   endtry
   for bp in t:dbg.breakpoints
-    exe ':sign place 3 name=dbg_bp line=' . bp.line . ' file=' . bp.path
+    try 
+      exe ':sign place 3 name=dbg_bp line=' . bp.line . ' file=' . bp.path
+    catch /.*/
+    endtry
   endfor
 
   call t:dbg.engine.breakpoint(path, line)
@@ -347,7 +353,7 @@ function! dbg#read(output)
 endfunction
 
 function! dbg#write(output, cmd)
-  if a:cmd == ''
+  if a:cmd == '' || a:cmd == '@'
     let cmd = t:dbg.lastCommand
   else
     let cmd = a:cmd
@@ -356,7 +362,7 @@ function! dbg#write(output, cmd)
     call dbg#gdbCommand(cmd[ 1 : ])
     let line = getline('$')
     let last = matchend(line, t:dbg.prompt)
-    call setline(t:dbg.lnum, line[ 0 : last-1 ])
+    call setline(t:dbg.lnum, line[ 0 : last-1 ] . '@')
     let t:dbg.lnum += 1
   else
     call t:dbg.pipe.stdin.write(cmd . "\r\n")
@@ -416,9 +422,10 @@ let s:gdbCommands = [
   \ {'name':'break',        'param':1, 'fn':'dbg#breakpoint'},
   \ {'name':'info locals',  'param':0, 'fn':'dbg#locals'},
   \ {'name':'info threads', 'param':0, 'fn':'dbg#threads'},
-  \ {'name':'info bt',      'param':0, 'fn':'dbg#backtrace'},
-  \ {'name':'where',        'param':0, 'fn':'dbg#backtrace'},
-  \ {'name':'backtrace',    'param':0, 'fn':'dbg#backtrace'}
+  \ {'name':'info bt',      'param':0, 'fn':'dbg#callstack'},
+  \ {'name':'where',        'param':0, 'fn':'dbg#callstack'},
+  \ {'name':'backtrace',    'param':0, 'fn':'dbg#callstack'},
+  \ {'name':'quit',         'param':0, 'fn':'dbg#close'}
   \ ]
 
 function! dbg#gdbCommand(cmd)
@@ -442,6 +449,6 @@ function! dbg#gdbCommand(cmd)
     endif
   endfor
 
-  echo 'unknown command [' . cmd . ']'
+  echoerr 'unknown command [' . cmd . ']'
 endfunction
 
