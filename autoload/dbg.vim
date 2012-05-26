@@ -353,6 +353,9 @@ function! dbg#read(output)
 endfunction
 
 function! dbg#write(output, cmd)
+  if !exists('t:dbg')
+    return
+  endif
   if a:cmd == '' || a:cmd == '@'
     let cmd = t:dbg.lastCommand
   else
