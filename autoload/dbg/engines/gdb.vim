@@ -128,11 +128,8 @@ function! s:engine.sync()
   if len(lines) >= 1
     let start = match(lines[0], ' at .*:\d\+')
     if start != -1
-"     let start = start + 4
       let mid   = strridx(lines[0], ':')
-"     let name  = lines[0][start : mid-1]
       let num   = lines[0][mid+1 :      ]
-"     let path  = t:dbg._base_dir . '/' . name
       call dbg#openSource(path, num)
     endif
   endif

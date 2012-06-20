@@ -97,27 +97,36 @@ gdb mode is a input method like a gdb.
 
 1) start debugger.
 
-2) start gdb mode.
-    :GdbMode
+2) input gdb command with atmark.
+    > @run
+    > @next
+    > @step
+    > @continue
+    > @finish
+    > @print xxx
+    > @info bt
+    > @info locals
+    > @info threads
+    > @info where
+    > @info backtrace
+    > @info quit
 
-3) input gdb command.
-    (gdb) hogehoge
-
-4) finish gdb mode.
-    Press <ESC> key.
-
+It is also possible shorthand.
+    > @n
+    > @p
+    ... etc
 
 Default Keymaps
 ---------------
-*<lg;F2>gt;    Print variable  under the cursor.
-*<lg;F5>gt;    Continue the program.
-*<lg;F6>gt;    Show locals variable.
-*<lg;F7>gt;    Show threads variable.
-*<lg;F8>gt;    Show callstack.
-*<lg;F9>gt;    Set breakpoints under the cursor.
-*<lg;F10>gt;   Next
-*<lg;F11>gt;   Step
-*<lg;S-F11>gt; stepout
+* <lg;F2>gt;    Print variable  under the cursor.
+* <lg;F5>gt;    Continue the program.
+* <lg;F6>gt;    Show locals variable.
+* <lg;F7>gt;    Show threads variable.
+* <lg;F8>gt;    Show callstack.
+* <lg;F9>gt;    Set breakpoints under the cursor.
+* <lg;F10>gt;   Next
+* <lg;F11>gt;   Step
+* <lg;S-F11>gt; stepout
 
 
 ScreenShots

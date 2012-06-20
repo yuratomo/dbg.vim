@@ -38,9 +38,7 @@ function! dbg#open(mode, ...)
     \ }
   call extend(t:dbg, dbg_per_engine)
 
-
   call t:dbg.engine.open(a:000)
-
   call s:default_keymap()
 endfunction
 
@@ -200,11 +198,9 @@ function! dbg#callstack()
   call t:dbg.engine.callstack()
 endfunction
 
-
 "
 " for each engines
 "
-
 function! dbg#initEngine(name)
   let engine = {}
   return engine
@@ -267,7 +263,7 @@ function! dbg#openSource(path, line)
       if bufname !~ g:dbg#title_prefix
          exe winno . "wincmd w"
          if expand('%:p') != a:path
-           exe 'edit +' . a:line . ' ' . a:path
+           exe 'edit +' . a:line . ' ' . escape(a:path, ' ')
          else
            call cursor(a:line, 0)
          endif
@@ -353,9 +349,6 @@ function! dbg#read(output)
 endfunction
 
 function! dbg#write(output, cmd)
-  if !exists('t:dbg')
-    return
-  endif
   if a:cmd == '' || a:cmd == '@'
     let cmd = t:dbg.lastCommand
   else
@@ -415,6 +408,9 @@ function! s:default_keymap()
   endif
 endfunction
 
+"
+" for gdb-mode
+"
 let s:gdbCommands = [
   \ {'name':'run',          'param':0, 'fn':'dbg#run'},
   \ {'name':'next',         'param':0, 'fn':'dbg#next'},
