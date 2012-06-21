@@ -228,6 +228,10 @@ function! s:resolveModuleName()
     let end = match(line, '\s\+(.*)')
     if top != -1 && end != -1 && stridx(line, 'pdb symbols)') > 0
       let t:dbg.target_name = line[ top : end-1 ]
+      let end = match(t:dbg.target_name, ' ')
+      if end > 0
+        let t:dbg.target_name = t:dbg.target_name[ 0 : end-1 ]
+      endif
       break
     endif
   endfor
