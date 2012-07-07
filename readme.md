@@ -4,8 +4,9 @@ dbg.vim
 Description
 -----------
 dbg.vim is vim scipt for debug the program.
-support cdb, gdb, jdb and fdb. (not support pdb)
+support mdbg, cdb, gdb, jdb and fdb. (not support pdb now)
 !!cdb is a command-line debugger for windows.
+!!mdbg is a command-line debugger for .Net Framework.
 
 Requirements
 ------------
@@ -14,6 +15,7 @@ Requirements
 2) Through the path to each debugger or define the vimrc as follows.
 
     let g:dbg#command_cdb = 'cdb.exe'
+    let g:dbg#command_mdbg= 'C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\NETFX 4.0 Tools\mdbg.exe'
     let g:dbg#command_jdb = 'jdb'
     let g:dbg#command_gdb = 'gdb'
     let g:dbg#command_fdb = 'fdb'
@@ -39,6 +41,12 @@ Usage
     > g
       or
     Press <F5> in command mode.
+
+
+### mdbg ###
+
+1) start debugger as follow.
+    :Dbg mdbg exe-file-path
 
 
 ### gdb ###
@@ -137,5 +145,9 @@ xxx
 HISTORY
 -------
 
+### v0.2.0 by yuratomo ###
+support mdbg (.Net Framework console debugger)
+
 ### v0.1.0 by yuratomo ###
+first release
 

@@ -1,5 +1,5 @@
 " File: plugin/w3m.vim
-" Last Modified: 2012.05.12
+" Last Modified: 2012.07.07
 " Version: 0.2.0
 " Author: yuratomo (twitter @yusetomo)
 
@@ -11,6 +11,7 @@ if exists('g:loaded_dbg') && g:loaded_dbg == 1
 endif
 
 let g:dbg#command_cdb    = 'cdb.exe'
+let g:dbg#command_mdbg   = 'C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\NETFX 4.0 Tools\mdbg.exe'
 let g:dbg#command_jdb    = 'jdb'
 let g:dbg#command_gdb    = 'gdb'
 let g:dbg#command_fdb    = 'fdb'

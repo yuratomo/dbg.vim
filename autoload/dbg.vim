@@ -4,7 +4,7 @@
 
 function! dbg#usage()
   echo '[usage]'
-  echo 'Dbg [cdb|gdb|jdb|fdb] [params]+'
+  echo 'Dbg [cdb|mdbg|gdb|jdb|fdb] [params]+'
   echo ''
   echo 'ex1) cdb'
   echo 'Dbg cdb c:\hoge\aaa.exe'
@@ -15,7 +15,7 @@ function! dbg#open(mode, ...)
   if exists('t:dbg')
     call dbg#close()
   endif
-  if len(a:000) == 0
+  if a:mode != 'mdbg' && len(a:000) == 0
     call dbg#usage()
     return
   endif
@@ -45,6 +45,10 @@ endfunction
 function! dbg#popen(cmd, params)
   if exists('t:dbg.pipe')
     unlet t:dbg.pipe
+  endif
+
+  if !executable(a:cmd)
+    echoerr 'command not exists. (' . a:cmd . ')'
   endif
 
   call dbg#focusIn()
