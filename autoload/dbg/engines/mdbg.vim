@@ -12,7 +12,7 @@ function! s:engine.open(params)
   call dbg#popen(g:dbg#command_mdbg, a:params)
 
   call s:comment('-----------------------------------------------')
-  call s:comment('         Welcom to dbg.vim (MDBG MODE)')
+  call s:comment('         Welcome to dbg.vim (MDBG MODE)')
   call s:comment('-----------------------------------------------')
   call s:comment('mdbg> ')
   call s:engine.sync()

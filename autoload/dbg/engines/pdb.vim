@@ -15,7 +15,7 @@ function! s:engine.open(target)
   call dbg#popen(g:dbg#command_python, params)
 
   call s:comment('-----------------------------------------------')
-  call s:comment('         Welcom to dbg.vim (PDB MODE)')
+  call s:comment('         Welcome to dbg.vim (PDB MODE)')
   call s:comment('')
   call s:comment('-----------------------------------------------')
   call dbg#insert()
