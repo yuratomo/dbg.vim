@@ -342,11 +342,11 @@ function! dbg#read(output)
         endif
       else
         let t:dbg.line = ''
-        sleep 100ms
+        sleep 10ms
       endif
       continue
     else
-      let t:dbg.line = t:dbg.line . res
+      let t:dbg.line = t:dbg.line . substitute(res, '\r', '', 'g')
     endif
   endwhile
   return t:dbg.last_readed_list
@@ -360,12 +360,15 @@ function! dbg#write(output, cmd)
   endif
   if cmd[0] == '@'
     call dbg#gdbCommand(cmd[ 1 : ])
+    if !exists('t:dbg')
+      return ''
+    endif
     let line = getline('$')
     let last = matchend(line, t:dbg.prompt)
     call setline(t:dbg.lnum, line[ 0 : last-1 ] . '@')
     let t:dbg.lnum += 1
   else
-    call t:dbg.pipe.stdin.write(cmd . "\r\n")
+    call t:dbg.pipe.stdin.write(cmd . "\n")
     if a:output == 1
       call setline(t:dbg.lnum-1, getline('$') . cmd)
     endif

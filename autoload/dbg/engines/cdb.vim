@@ -33,7 +33,7 @@ function! s:engine.open(params)
   endfor
 
   call s:comment('-----------------------------------------------')
-  call s:comment('         Welcom to dbg.vim (CDB MODE)')
+  call s:comment('         Welcome to dbg.vim (CDB MODE)')
   call s:comment('')
   if estimate_main == ''
     call s:comment('!! You will need to set the first breakpoint')

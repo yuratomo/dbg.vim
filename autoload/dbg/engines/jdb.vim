@@ -22,7 +22,7 @@ function! s:engine.open(params)
   call dbg#popen(g:dbg#command_jdb, a:params)
 
   call s:comment('-----------------------------------------------')
-  call s:comment('         Welcom to dbg.vim (JDB MODE)')
+  call s:comment('         Welcome to dbg.vim (JDB MODE)')
   call s:comment('!! You will need to set the first breakpoint')
   call s:comment('and run the target program.')
   call s:comment('')

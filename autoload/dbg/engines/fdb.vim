@@ -22,7 +22,7 @@ function! s:engine.open(params)
   call dbg#popen(g:dbg#command_fdb, a:params)
 
   call s:comment('-----------------------------------------------')
-  call s:comment('         Welcom to dbg.vim (FDB MODE)')
+  call s:comment('         Welcome to dbg.vim (FDB MODE)')
   call s:comment('base directory is ' .  t:dbg._base_dir)
   call s:comment('')
   call s:comment('!! You will need to set the first breakpoint')

@@ -12,7 +12,7 @@ function! s:engine.open(params)
   call dbg#popen(g:dbg#command_gdb, a:params)
 
   call s:comment('-----------------------------------------------')
-  call s:comment('         Welcom to dbg.vim (GDB MODE)')
+  call s:comment('         Welcome to dbg.vim (GDB MODE)')
   call s:comment('!! You will need to set the first breakpoint')
   call s:comment('and run the target program.')
   call s:comment('')
@@ -61,7 +61,7 @@ function! s:engine.print(...)
     let word = expand("<cword>")
   endif
   call dbg#focusIn()
-  call dbg#write(1, printf('print %s', word))
+  call dbg#write(0, printf('print %s', word))
   call dbg#read(1)
   call cursor('$',0)
   redraw
@@ -77,7 +77,7 @@ function! s:engine.breakpoint(...)
     let line = line('.')
   endif
   call dbg#focusIn()
-  call dbg#write(1, printf('break %s:%d',
+  call dbg#write(0, printf('break %s:%d',
     \ path,
     \ line
     \ ))
@@ -89,21 +89,21 @@ endfunction
 
 function! s:engine.locals()
   call dbg#focusIn()
-  call dbg#write(1, 'info locals')
+  call dbg#write(0, 'info locals')
   call dbg#read(1)
   call dbg#focusBack()
 endfunction
 
 function! s:engine.threads()
   call dbg#focusIn()
-  call dbg#write(1, 'info threads')
+  call dbg#write(0, 'info threads')
   call dbg#read(1)
   call dbg#focusBack()
 endfunction
 
 function! s:engine.callstack()
   call dbg#focusIn()
-  call dbg#write(1, 'backtrace')
+  call dbg#write(0, 'backtrace')
   call dbg#read(1)
   call dbg#focusBack()
 endfunction
@@ -140,7 +140,7 @@ endfunction
 
 function! s:engine.close()
   call dbg#focusIn()
-  call dbg#write(1, 'quit')
+  call dbg#write(0, 'quit')
   call dbg#read(1)
   call dbg#focusBack()
 endfunction
