@@ -12,11 +12,14 @@ function! s:engine.open(params)
   call dbg#popen(g:dbg#command_mdbg, a:params, [
   \ '-----------------------------------------------',
   \ '         Welcome to dbg.vim (MDBG MODE)',
+  \ '!! You will need to run the target program.',
+  \ 'for example:',
+  \ '',
+  \ '> run',
   \ '-----------------------------------------------',
   \ 'mdbg> '
   \ ])
-
-  call s:engine.sync()
+  "call s:engine.sync()
   call dbg#insert()
 endfunction
 

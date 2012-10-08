@@ -65,6 +65,8 @@ Usage
 
     :Dbg mdbg exe-file-path
 
+2) run the program.
+    > run
 
 ### gdb ###
 
