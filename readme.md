@@ -168,15 +168,15 @@ It is also possible shorthand.
 
 Default Keymaps
 ---------------
-* &lg;F2&gt;    Print variable  under the cursor.
-* &lg;F5&gt;    Continue the program.
-* &lg;F6&gt;    Show locals variable.
-* &lg;F7&gt;    Show threads variable.
-* &lg;F8&gt;    Show callstack.
-* &lg;F9&gt;    Set breakpoints under the cursor.
-* &lg;F10&gt;   Next
-* &lg;F11&gt;   Step
-* &lg;S-F11&gt; stepout
+* &lt;F2&gt;    Print variable  under the cursor.
+* &lt;F5&gt;    Continue the program.
+* &lt;F6&gt;    Show locals variable.
+* &lt;F7&gt;    Show threads variable.
+* &lt;F8&gt;    Show callstack.
+* &lt;F9&gt;    Set breakpoints under the cursor.
+* &lt;F10&gt;   Next
+* &lt;F11&gt;   Step
+* &lt;S-F11&gt; stepout
 
 
 ScreenShots
