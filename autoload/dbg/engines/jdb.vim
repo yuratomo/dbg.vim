@@ -19,21 +19,25 @@ function! s:engine.open(params)
   endif
   exe 'cd ' . base_dir
 
-  call dbg#popen(g:dbg#command_jdb, a:params)
-
-  call s:comment('-----------------------------------------------')
-  call s:comment('         Welcome to dbg.vim (JDB MODE)')
-  call s:comment('!! You will need to set the first breakpoint')
-  call s:comment('and run the target program.')
-  call s:comment('')
-  call s:comment('for example:')
   if len(a:params) > 0
-    call s:comment('> stop in ' . a:params[0] . '.main')
+    let stop_comment = '> stop in ' . a:params[0] . '.main'
   else
-    call s:comment('> stop in XXX.main')
+    let stop_comment = '> stop in XXX.main'
   endif
-  call s:comment('> run')
-  call s:comment('-----------------------------------------------')
+
+  call dbg#popen(g:dbg#command_jdb, a:params, [
+  \ '-----------------------------------------------',
+  \ '         Welcome to dbg.vim (JDB MODE)',
+  \ '!! You will need to set the first breakpoint',
+  \ 'and run the target program.',
+  \ '',
+  \ 'for example:',
+  \ stop_comment,
+  \ '> run',
+  \ '-----------------------------------------------',
+  \ '> '
+  \ ])
+
   call dbg#insert()
 endfunction
 
@@ -97,10 +101,7 @@ function! s:engine.breakpoint(...)
   endif
   let class = substitute(path[ start+1 : ], '\', '/', 'g')
   call dbg#focusIn()
-  call dbg#write(1, printf('stop at %s:%d',
-    \ class,
-    \ line
-    \ ))
+  call dbg#write(1, printf('stop at %s:%d', class, line))
   call dbg#read(1)
   call cursor('$',0)
   redraw
@@ -152,6 +153,7 @@ function! s:engine.post_write(cmd)
   if a:cmd == 'run'
     let t:dbg.prompt = '\a\+\[\d\+\] '
   endif
+  return 0
 endfunction
 
 function! s:engine.close()
@@ -159,14 +161,5 @@ function! s:engine.close()
   call dbg#write(1, 'quit')
   call dbg#read(1)
   call dbg#focusBack()
-endfunction
-
-" internal functions
-
-function! s:comment(msg)
-  call dbg#write(1, '*' . a:msg)
-  call dbg#read(0)
-  call dbg#write(0, '')
-  call dbg#read(1)
 endfunction
 

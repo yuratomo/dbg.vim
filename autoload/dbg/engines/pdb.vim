@@ -12,12 +12,12 @@ function! s:engine.open(target)
   let params = []
   call extend(params, ['-m', 'pdb'])
   call extend(params, a:params)
-  call dbg#popen(g:dbg#command_python, params)
-
-  call s:comment('-----------------------------------------------')
-  call s:comment('         Welcome to dbg.vim (PDB MODE)')
-  call s:comment('')
-  call s:comment('-----------------------------------------------')
+  call dbg#popen(g:dbg#command_python, params, [
+  \ '-----------------------------------------------',
+  \ '         Welcome to dbg.vim (PDB MODE)',
+  \ '-----------------------------------------------',
+  \ '',
+  \ ])
   call dbg#insert()
 endfunction
 
@@ -75,10 +75,7 @@ function! s:engine.breakpoint(...)
     let line = line('.')
   endif
   call dbg#focusIn()
-  call dbg#write(1, printf('break %s:%d',
-    \ path,
-    \ line
-    \ ))
+  call dbg#write(1, printf('break %s:%d', path, line))
   call dbg#read(1)
   call cursor('$',0)
   redraw
@@ -86,11 +83,11 @@ function! s:engine.breakpoint(...)
 endfunction
 
 function! s:engine.locals()
-  call s:comment('not support local variable info')
+  call dbg#output('not support local variable info')
 endfunction
 
 function! s:engine.threads()
-  call s:comment('not support threads info')
+  call dbg#output('not support threads info')
 endfunction
 
 function! s:engine.callstack()
@@ -118,22 +115,10 @@ function! s:engine.sync()
   endfor
 endfunction
 
-"function! s:engine.post_write(cmd)
-"endfunction
-
 function! s:engine.close()
   call dbg#focusIn()
   call dbg#write(1, 'quit')
   call dbg#read(1)
   call dbg#focusBack()
-endfunction
-
-" internal functions
-
-function! s:comment(msg)
-  call dbg#write(1, '*' . a:msg)
-  call dbg#read(0)
-  call dbg#write(0, '')
-  call dbg#read(1)
 endfunction
 

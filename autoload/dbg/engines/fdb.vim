@@ -19,19 +19,20 @@ function! s:engine.open(params)
   endif
   exe 'cd ' . base_dir
 
-  call dbg#popen(g:dbg#command_fdb, a:params)
+  call dbg#popen(g:dbg#command_fdb, a:params, [
+    \ '-----------------------------------------------',
+    \ '         Welcome to dbg.vim (FDB MODE)',
+    \ 'base directory is ' .  t:dbg._base_dir,
+    \ '',
+    \ '!! You will need to set the first breakpoint',
+    \ 'and run the target program.',
+    \ '',
+    \ 'for example:',
+    \ '> break main',
+    \ '> continue',
+    \ '-----------------------------------------------',
+    \ ])
 
-  call s:comment('-----------------------------------------------')
-  call s:comment('         Welcome to dbg.vim (FDB MODE)')
-  call s:comment('base directory is ' .  t:dbg._base_dir)
-  call s:comment('')
-  call s:comment('!! You will need to set the first breakpoint')
-  call s:comment('and run the target program.')
-  call s:comment('')
-  call s:comment('for example:')
-  call s:comment('> break main')
-  call s:comment('> continue')
-  call s:comment('-----------------------------------------------')
   call dbg#insert()
 endfunction
 
@@ -89,10 +90,7 @@ function! s:engine.breakpoint(...)
     let line = line('.')
   endif
   call dbg#focusIn()
-  call dbg#write(1, printf('break %s:%d',
-    \ path,
-    \ line
-    \ ))
+  call dbg#write(1, printf('break %s:%d', path, line ))
   call dbg#read(1)
   call cursor('$',0)
   redraw
@@ -107,7 +105,7 @@ function! s:engine.locals()
 endfunction
 
 function! s:engine.threads()
-  call s:comment('not support threads info')
+  call dbg#output('not support threads info')
 endfunction
 
 function! s:engine.callstack()
@@ -135,22 +133,10 @@ function! s:engine.sync()
   endif
 endfunction
 
-"function! s:engine.post_write(cmd)
-"endfunction
-
 function! s:engine.close()
   call dbg#focusIn()
   call dbg#write(1, 'quit')
   call dbg#read(1)
   call dbg#focusBack()
-endfunction
-
-" internal functions
-
-function! s:comment(msg)
-  call dbg#write(1, '*' . a:msg)
-  call dbg#read(0)
-  call dbg#write(0, '')
-  call dbg#read(1)
 endfunction
 

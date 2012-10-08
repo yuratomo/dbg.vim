@@ -2,9 +2,13 @@
 " Last Modified: 2012.05.06
 " Author: yuratomo (twitter @yusetomo)
 
+let [ s:MODE_START, s:MODE_READING, s:MODE_PAUSE, s:MODE_COMPLETE ] = range(4)
+let s:read_mode = s:MODE_START
+let s:updatetime = 0
+
 function! dbg#usage()
   echo '[usage]'
-  echo 'Dbg [cdb|mdbg|gdb|jdb|fdb] [params]+'
+  echo 'Dbg [shell|cdb|mdbg|gdb|jdb|fdb] [params]+'
   echo ''
   echo 'ex1) cdb'
   echo 'Dbg cdb c:\hoge\aaa.exe'
@@ -15,9 +19,11 @@ function! dbg#open(mode, ...)
   if exists('t:dbg')
     call dbg#close()
   endif
-  if a:mode != 'mdbg' && len(a:000) == 0
-    call dbg#usage()
-    return
+  if len(a:000) == 0
+    if a:mode != 'mdbg' &&  a:mode != 'shell'
+      call dbg#usage()
+      return
+    endif
   endif
 
   if !exists('g:loaded_vimproc')
@@ -29,20 +35,23 @@ function! dbg#open(mode, ...)
   let t:dbg = {
     \ 'prompt'      : '> ',
     \ 'verbose'     : 0,
-    \ 'lnum'        : 1,
     \ 'line'        : '',
     \ 'lastCommand' : '',
     \ 'sign_id'     : 1,
+    \ 'gdbMode'     : 1,
+    \ 'split'       : 1,
     \ 'engine'      : {},
     \ 'pipe'        : {},
     \ }
   call extend(t:dbg, dbg_per_engine)
 
   call t:dbg.engine.open(a:000)
-  call s:default_keymap()
+  if a:mode != 'shell'
+    call s:default_keymap()
+  endif
 endfunction
 
-function! dbg#popen(cmd, params)
+function! dbg#popen(cmd, params, welcome)
   if exists('t:dbg.pipe')
     unlet t:dbg.pipe
   endif
@@ -51,21 +60,26 @@ function! dbg#popen(cmd, params)
     echoerr 'command not exists. (' . a:cmd . ')'
   endif
 
-  call dbg#focusIn()
-
   let cmd_params = []
   call add(cmd_params, a:cmd)
   call extend(cmd_params, a:params)
 
-  let t:dbg.pipe = vimproc#popen3(cmd_params)
-  call dbg#read(1)
-  if t:dbg.pipe.stdout.eof
-    let lines = split(t:dbg.line, "\n")
-    call setline(t:dbg.lnum, lines)
-    let t:dbg.line = ''
-    call cursor('$',0)
-    return
-  endif
+  try
+    let t:dbg.pipe = vimproc#popen3(cmd_params)
+
+    call dbg#focusIn()
+    call dbg#output(a:welcome)
+
+    call dbg#read(1)
+    if t:dbg.pipe.stdout.eof
+      let lines = split(t:dbg.line, "\n")
+      call dbg#output(lines)
+      let t:dbg.line = ''
+      call cursor('$',0)
+      return
+    endif
+  catch /.*/
+  endtry
 endfunction
 
 function! dbg#close()
@@ -77,17 +91,28 @@ function! dbg#close()
     call t:dbg.close()
   catch /.*/
   endtry
-  unlet t:dbg.engine
-  unlet t:dbg.pipe
+
+  if has_key(t:dbg, 'engine')
+    unlet t:dbg.engine
+  endif
+
+  if has_key(t:dbg, 'pipe')
+    unlet t:dbg.pipe
+  endif
+
   unlet t:dbg
   sign unplace *
 endfunction
 
 function! dbg#command()
-  if !exists('t:dbg.engine')
+  if !exists('t:dbg') || !exists('t:dbg.engine')
     return
   endif
-  call s:command()
+  if s:read_mode == s:MODE_PAUSE
+    call dbg#control(10)
+  else
+    call s:command()
+  endif
 endfunction
 
 function! dbg#run()
@@ -146,7 +171,7 @@ function! dbg#breakpoint(...)
     let line = a:000[0][colon+1 :  ]
     let lastline = getline('$')
     let last = matchend(lastline, t:dbg.prompt)
-    call setline(t:dbg.lnum, lastline[ 0 : last-1 ])
+    call dbg#output(lastline[ 0 : last-1 ])
   else
     let path = expand('%:p')
     let line = line('.')
@@ -211,11 +236,7 @@ function! dbg#initEngine(name)
 endfunction
 
 function! dbg#focusIn()
-  if !exists('t:dbg.engine')
-    return
-  endif
-
-  let t:dbg.old_winnum = winnr()
+    let t:dbg.old_winnum = winnr()
   let winnum = winnr('$')
   for winno in range(1, winnum)
     let bufname = bufname(winbufnr(winno))
@@ -231,9 +252,16 @@ function! dbg#focusIn()
     let id += 1
   endwhile
   let bufname = g:dbg#title_prefix.id
-  new
+  let t:dbg.src_winnr = winnr()
+
+  " if mode is shell-mode, then window don't split.
+  if t:dbg.split == 1
+    new
+  endif
+
   silent edit `=bufname`
   setlocal bt=nofile noswf nowrap hidden nolist
+  setlocal iskeyword+=46
 
   augroup dbg
     au!
@@ -246,6 +274,8 @@ function! dbg#focusIn()
   nnoremap <buffer><c-c> :<c-u>call dbg#control(3)<CR>
   "inoremap <expr><buffer><c-c> dbg#control(3)  ... error. but why?
   inoremap <buffer><c-c> <ESC>:call dbg#control(3)<CR>a
+  inoremap <expr> <buffer> <TAB> dbg#tab()
+  inoremap <expr> <buffer> <S-TAB> dbg#stab()
 
 endfunction
 
@@ -294,101 +324,223 @@ function! s:command()
   let line = getline('$')
   let last = matchend(line, t:dbg.prompt)
   if last != -1
-    call dbg#write(2, line[ last : ])
-    if t:dbg.lastCommand[0] != '@'
-      call dbg#read(1)
+    if dbg#write(2, line[ last : ]) == 0
+      return
+    endif
+
+    if t:dbg.lastCommand[0] != '@' || t:dbg.gdbMode == 0
+      if !empty(dbg#read(1))
+        call t:dbg.engine.sync()
+      endif
     endif
     if t:dbg.pipe.stdout.eof
       let lines = split(t:dbg.line, "\n")
-      call setline(t:dbg.lnum, lines)
+      call dbg#output(lines)
       let t:dbg.line = ''
       return
     endif
-    call t:dbg.engine.sync()
   endif
   call dbg#insert()
   retur ''
 endfunction
 
 function! dbg#insert()
-  inoremap <buffer><CR> <ESC>:stopi<CR>:call dbg#command()<CR>
+  inoremap <silent><buffer><CR> <ESC>:stopi<CR>:call dbg#command()<CR>
   call cursor('$',0)
   start!
 endfunction
 
 function! dbg#read(output)
+  if !exists('t:dbg')
+    return []
+  endif
+
+  let nop_cnt = 0
+  if s:read_mode != s:MODE_PAUSE
+    let s:read_mode = s:MODE_READING
+  endif
+
   let t:dbg.last_readed_list = []
   while !t:dbg.pipe.stdout.eof
+
+    " read stdout or stderr
+    let err = 0
     let res = t:dbg.pipe.stdout.read()
     if res == ''
-      let midx = match(t:dbg.line, t:dbg.prompt)
-      if midx != -1
-        let last = matchend(t:dbg.line, t:dbg.prompt)
+      let res = t:dbg.pipe.stderr.read()
+      if res != ''
+        let err = 1
+      endif
+    endif
+
+    " analize
+    if res == ''
+      let last = matchend(t:dbg.line, t:dbg.prompt . '$')
+      if last != -1
         let lines = split(t:dbg.line[ : last], "\n")
       else
         let lines = split(t:dbg.line, "\n")
       endif
       if a:output == 1
-        call setline(t:dbg.lnum, lines)
-        call cursor('$',0)
-        let t:dbg.lnum = t:dbg.lnum + len(lines)
+        if !empty(lines)
+          call dbg#output(lines)
+        endif
       endif
       call extend(t:dbg.last_readed_list, lines)
-      redraw
-      if midx != -1
+      if last != -1
         let t:dbg.line = t:dbg.line[ last : ]
         if t:dbg.line == ''
+          call s:read_complete()
           break
         endif
       else
-        let t:dbg.line = ''
+        if a:output != 0
+          let t:dbg.line = ''
+          if nop_cnt > 30
+            call s:read_pause()
+            return []
+          endif
+          let nop_cnt += 1
+        endif
         sleep 10ms
       endif
       continue
     else
       let t:dbg.line = t:dbg.line . substitute(res, '\r', '', 'g')
+      let nop_cnt = 0
     endif
   endwhile
   return t:dbg.last_readed_list
 endfunction
 
+function! s:read_pause()
+  if s:read_mode != s:MODE_PAUSE
+    let s:read_mode = s:MODE_PAUSE
+    let s:updatetime  = &updatetime
+    set updatetime=500
+    augroup dbg
+      au!
+      au! CursorHoldI <buffer> call dbg#read_restart()
+    augroup END
+
+    for [ _c, _e ] in [ ['a', 'z'], ['A', 'B'], ['0', '9'] ]
+      let c = char2nr(_c)
+      let e = char2nr(_e)
+      while c <= e
+        exec 'inoremap <silent><buffer><expr> ' . nr2char(c) . ' dbg#direct_write(' . c . ')'
+        let c += 1
+      endwhile
+    endfor
+  endif
+endfunction
+
+function! dbg#direct_write(cmd)
+  call t:dbg.pipe.stdin.write(nr2char(a:cmd))
+  return nr2char(a:cmd)
+endfunction
+
+function! s:read_complete()
+  let s:read_mode = s:MODE_COMPLETE
+  if exists('s:updatetime')
+    let &updatetime  = s:updatetime
+    augroup dbg
+      au!
+    augroup END
+    unlet s:updatetime
+    call s:moveCursorLast()
+    for [ _c, _e ] in [ ['a', 'z'], ['A', 'B'], ['0', '9'] ]
+      let c = char2nr(_c)
+      let e = char2nr(_e)
+      while c <= e
+        exec 'inoremap <silent><buffer> ' . nr2char(c) . ' ' . nr2char(c)
+        let c += 1
+      endwhile
+    endfor
+  endif
+endfunction
+
+function! dbg#read_restart()
+  call dbg#read(1)
+  call s:moveCursorLast()
+endfunction
+
+function! s:moveCursorLast()
+  let vb  = &visualbell
+  let tvb = &t_vb
+  set visualbell
+  set t_vb=
+  call feedkeys("\<ESC>GA", 'n')
+  let &visualbell  = vb
+  let &t_vb        = tvb
+endfunction
+
 function! dbg#write(output, cmd)
-  if a:cmd == '' || a:cmd == '@'
+  if t:dbg.gdbMode == 1 && (a:cmd == '' || a:cmd == '@')
     let cmd = t:dbg.lastCommand
   else
     let cmd = a:cmd
   endif
-  if cmd[0] == '@'
+
+  " pre write
+  if exists('t:dbg.engine.pre_write')
+    if t:dbg.engine.pre_write(cmd) == 1
+      return 0
+    endif
+  endif
+
+  if t:dbg.gdbMode == 1 && cmd[0] == '@'
+    " gdb mode
     call dbg#gdbCommand(cmd[ 1 : ])
     if !exists('t:dbg')
-      return ''
+      return 0
     endif
     let line = getline('$')
     let last = matchend(line, t:dbg.prompt)
-    call setline(t:dbg.lnum, line[ 0 : last-1 ] . '@')
-    let t:dbg.lnum += 1
+    call setline(line('$')+1, line[ 0 : last-1 ] . '@')
   else
-    call t:dbg.pipe.stdin.write(cmd . "\n")
+    " normal mode
+    call t:dbg.pipe.stdin.write(cmd . "\r\n")
     if a:output == 1
-      call setline(t:dbg.lnum-1, getline('$') . cmd)
+      call dbg#output(getline('$') . cmd)
+      call cursor('$',0)
     endif
   endif
   if a:output == 2
     let t:dbg.lastCommand = cmd
   endif
+
+  " post write
   if exists('t:dbg.engine.post_write')
-    call t:dbg.engine.post_write(cmd)
+    if t:dbg.engine.post_write(cmd) == 1
+      return 0
+    endif
   endif
-  if a:output == 1
-    call cursor('$',0)
+
+  if !exists('t:dbg')
+    return 0
+  else
+    return 1
   endif
-  return ''
+endfunction
+
+function! dbg#output(str)
+  call setline(line('$')+1, a:str)
 endfunction
 
 function! dbg#control(n)
-  call dbg#write(2, nr2char(a:n))
+  call dbg#direct_write(a:n)
   call dbg#read(1)
   return ''
+endfunction
+
+function! dbg#tab()
+  call feedkeys("\<c-n>", 'n')
+  retur ''
+endfunction
+
+function! dbg#stab()
+  call feedkeys("\<c-p>", 'n')
+  retur ''
 endfunction
 
 function! s:default_keymap()

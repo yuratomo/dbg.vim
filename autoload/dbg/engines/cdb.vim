@@ -9,7 +9,12 @@ function! dbg#engines#cdb#init()
 endfunction
 
 function! s:engine.open(params)
-  call dbg#popen(g:dbg#command_cdb, a:params)
+  call dbg#popen(g:dbg#command_cdb, a:params, [
+  \ '-----------------------------------------------',
+  \ '         Welcome to dbg.vim (GDB MODE)',
+  \ '-----------------------------------------------',
+  \ '',
+  \ ])
 
   call s:resolveModuleName()
 
@@ -32,25 +37,25 @@ function! s:engine.open(params)
     endif
   endfor
 
-  call s:comment('-----------------------------------------------')
-  call s:comment('         Welcome to dbg.vim (CDB MODE)')
-  call s:comment('')
+  call dbg#output('-------------------------------------------------')
   if estimate_main == ''
-    call s:comment('!! You will need to set the first breakpoint')
-    call s:comment('and run the target program.')
-    call s:comment('')
-    call s:comment('for example:')
-    call s:comment('> bp ' . estimate_main)
+    call dbg#output('!! You will need to set the first breakpoint')
+    call dbg#output('and run the target program.')
+    call dbg#output('')
+    call dbg#output('for example:')
+    call dbg#output('> bp ' . estimate_main)
   else
     call dbg#write(0, 'bp ' . estimate_main)
     call dbg#read(0)
-    call s:comment('!! dbg.vim set the break point at "' . t:dbg.target_name . '!' . estimate_main . '"')
-    call s:comment('You will need to run the target program.')
-    call s:comment('')
-    call s:comment('for example:')
+    call dbg#output('!! dbg.vim set the break point at "' . t:dbg.target_name . '!' . estimate_main . '"')
+    call dbg#output('You will need to run the target program.')
+    call dbg#output('')
+    call dbg#output('for example:')
   endif
-  call s:comment('> g')
-  call s:comment('-----------------------------------------------')
+  call dbg#output('> g')
+  call dbg#output('-------------------------------------------------')
+  call dbg#output('0:000> ')
+
   call dbg#insert()
 endfunction
 
@@ -105,10 +110,8 @@ function! s:engine.print(...)
     let word = expand("<cword>")
   endif
   call dbg#focusIn()
-  call dbg#write(1, printf('dt %s', word))
+  call dbg#write(0, printf('dv %s', word))
   call dbg#read(1)
-  call cursor('$',0)
-  redraw
   call dbg#focusBack()
 endfunction
 
@@ -121,14 +124,8 @@ function! s:engine.breakpoint(...)
     let line = line('.')
   endif
   call dbg#focusIn()
-  call dbg#write(1, printf('bp `%s!%s:%d`',
-    \ t:dbg.target_name,
-    \ path,
-    \ line
-    \ ))
+  call dbg#write(1, printf('bp `%s!%s:%d`', t:dbg.target_name, path, line))
   call dbg#read(1)
-  call cursor('$',0)
-  redraw
   call dbg#focusBack()
 endfunction
 
@@ -174,7 +171,7 @@ function! s:engine.sync()
       if filereadable(path)
         call dbg#openSource(path, num)
       else
-        call s:comment(path)
+        call dbg#output(path)
       endif
     endif
   endif
@@ -202,8 +199,6 @@ function! s:engine.post_write(cmd)
           \ bp.line
           \ ))
         call dbg#read(1)
-        call cursor('$',0)
-        redraw
       endfor
     endif
   endif
@@ -212,11 +207,6 @@ function! s:engine.post_write(cmd)
 endfunction
 
 " internal functions
-
-function! s:comment(msg)
-  call dbg#write(1, '*' . a:msg)
-  call dbg#read(1)
-endfunction
 
 function! s:resolveModuleName()
   call dbg#write(0, 'ld *')

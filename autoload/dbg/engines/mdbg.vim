@@ -9,12 +9,13 @@ function! dbg#engines#mdbg#init()
 endfunction
 
 function! s:engine.open(params)
-  call dbg#popen(g:dbg#command_mdbg, a:params)
+  call dbg#popen(g:dbg#command_mdbg, a:params, [
+  \ '-----------------------------------------------',
+  \ '         Welcome to dbg.vim (MDBG MODE)',
+  \ '-----------------------------------------------',
+  \ 'mdbg> '
+  \ ])
 
-  call s:comment('-----------------------------------------------')
-  call s:comment('         Welcome to dbg.vim (MDBG MODE)')
-  call s:comment('-----------------------------------------------')
-  call s:comment('mdbg> ')
   call s:engine.sync()
   call dbg#insert()
 endfunction
@@ -132,12 +133,5 @@ function! s:engine.close()
   call dbg#write(1, 'exit')
   call dbg#read(1)
   call dbg#focusBack()
-endfunction
-
-" internal functions
-
-function! s:comment(msg)
-  call setline(t:dbg.lnum, a:msg)
-  let t:dbg.lnum += 1
 endfunction
 
