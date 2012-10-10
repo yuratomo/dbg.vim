@@ -31,7 +31,12 @@ function! dbg#open(mode, ...)
     return
   endif
 
-  let dbg_per_engine = dbg#engines#{a:mode}#init()
+  try
+    let dbg_per_engine = dbg#engines#{a:mode}#init()
+  catch /.*/
+    echo 'Debugger "' . a:mode . '" is not exists.'
+    return
+  endtry
   let t:dbg = {
     \ 'prompt'      : '> ',
     \ 'verbose'     : 0,
