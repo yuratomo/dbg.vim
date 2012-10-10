@@ -460,7 +460,9 @@ function! s:read_complete()
 endfunction
 
 function! dbg#read_restart()
-  call dbg#read(1)
+  if !empty(dbg#read(1))
+    call t:dbg.engine.sync()
+  endif
   call s:moveCursorLast()
 endfunction
 
