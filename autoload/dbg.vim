@@ -276,11 +276,7 @@ function! dbg#focusIn()
   sign define dbg_cur text=>>
   sign define dbg_bp  text=!!
 
-  nnoremap <buffer><c-c> :<c-u>call dbg#control(3)<CR>
-  "inoremap <expr><buffer><c-c> dbg#control(3)  ... error. but why?
-  inoremap <buffer><c-c> <ESC>:call dbg#control(3)<CR>a
-  inoremap <expr> <buffer> <TAB> dbg#tab()
-  inoremap <expr> <buffer> <S-TAB> dbg#stab()
+  call s:map_ctrl_key(1)
 
 endfunction
 
@@ -428,14 +424,7 @@ function! s:read_pause()
       au! CursorHoldI <buffer> call dbg#read_restart()
     augroup END
 
-    for [ _c, _e ] in [ ['a', 'z'], ['A', 'B'], ['0', '9'] ]
-      let c = char2nr(_c)
-      let e = char2nr(_e)
-      while c <= e
-        exec 'inoremap <silent><buffer><expr> ' . nr2char(c) . ' dbg#direct_write(' . c . ')'
-        let c += 1
-      endwhile
-    endfor
+    call s:map_normal_key(1)
   endif
 endfunction
 
@@ -453,14 +442,8 @@ function! s:read_complete()
     augroup END
     unlet s:updatetime
     call s:moveCursorLast()
-    for [ _c, _e ] in [ ['a', 'z'], ['A', 'B'], ['0', '9'] ]
-      let c = char2nr(_c)
-      let e = char2nr(_e)
-      while c <= e
-        exec 'inoremap <silent><buffer> ' . nr2char(c) . ' ' . nr2char(c)
-        let c += 1
-      endwhile
-    endfor
+
+    call s:map_normal_key(0)
   endif
 endfunction
 
@@ -617,3 +600,39 @@ function! dbg#gdbCommand(cmd)
   echoerr 'unknown command [' . cmd . ']'
 endfunction
 
+function s:map_ctrl_key(map)
+  inoremap <expr> <buffer> <TAB> dbg#tab()
+  inoremap <expr> <buffer> <S-TAB> dbg#stab()
+
+  let c = 1
+  let i = char2nr('a')
+  let e = char2nr('z')
+  while i <= e
+    exec 'inoremap <expr> <buffer> <c-' . nr2char(i) . '> dbg#direct_write(' . c .  ')'
+    let c += 1
+    let i += 1
+  endwhile
+
+  inoremap <expr> <buffer> <c-c> dbg#control(3)
+
+endfunction
+
+function s:map_normal_key(map)
+  for [ _c, _e ] in [ ['a', 'z'], ['A', 'Z'], ['0', '9'], ['!', '/'], [':', '@']]
+    let c = char2nr(_c)
+    let e = char2nr(_e)
+    while c <= e
+      if a:map == 1
+        exec 'inoremap <silent><buffer><expr> ' . nr2char(c) . ' dbg#direct_write(' . c . ')'
+      else
+        exec 'inoremap <silent><buffer> ' . nr2char(c) . ' ' . nr2char(c)
+      endif
+      let c += 1
+    endwhile
+  endfor
+  if a:map == 1
+    exec 'inoremap <silent><buffer> <SPACE> dbg#direct_write(" ")'
+  else
+    exec 'inoremap <silent><buffer> <SPACE> <SPACE>'
+  endif
+endfunction
