@@ -407,6 +407,9 @@ function! dbg#read(output)
       endif
       continue
     else
+      if has_key(t:dbg, 'encoding')
+        let res = iconv(res, t:dbg.encoding, &enc)
+      endif
       let t:dbg.line = t:dbg.line . substitute(res, '\r', '', 'g')
       let nop_cnt = 0
     endif

@@ -2,12 +2,16 @@
 let s:engine = dbg#initEngine('shell')
 
 function! dbg#engines#shell#init()
-  return {
-    \ 'prompt'  : g:dbg#shell_prompt,
-    \ 'engine'  : s:engine,
-    \ 'gdbMode' : 0,
-    \ 'split'   : 0,
-    \ }
+  let engine = {
+      \ 'prompt'  : g:dbg#shell_prompt,
+      \ 'engine'  : s:engine,
+      \ 'gdbMode' : 0,
+      \ 'split'   : 0,
+      \ }
+  if exists('g:dbg#command_encoding')
+    let engine.encoding = g:dbg#command_encoding
+  endif
+  return engine
 endfunction
 
 function! s:engine.open(params)

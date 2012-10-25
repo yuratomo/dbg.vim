@@ -18,6 +18,12 @@ if !exists('g:dbg#command_shell')
   endif
 endif
 
+if !exists('g:dbg#command_encoding')
+  if has('win32')
+    let g:dbg#command_encoding = 'cp932'
+  endif
+endif
+
 if !exists('g:dbg#shell_prompt')
   if has('win32')
     let g:dbg#shell_prompt  = '>'
