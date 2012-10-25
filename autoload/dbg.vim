@@ -414,6 +414,9 @@ function! dbg#read(output)
       let nop_cnt = 0
     endif
   endwhile
+  if has_key(t:dbg, 'encoding')
+    let t:dbg.line = iconv(t:dbg.line, t:dbg.encoding, &enc)
+  endif
   return t:dbg.last_readed_list
 endfunction
 
