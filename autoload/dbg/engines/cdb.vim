@@ -11,7 +11,7 @@ endfunction
 function! s:engine.open(params)
   call dbg#popen(g:dbg#command_cdb, a:params, [
   \ '-----------------------------------------------',
-  \ '         Welcome to dbg.vim (GDB MODE)',
+  \ '         Welcome to dbg.vim (CDB MODE)',
   \ '-----------------------------------------------',
   \ '',
   \ ])
