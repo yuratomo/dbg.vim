@@ -133,13 +133,21 @@ function! s:engine.sync()
   call dbg#write(0, 'where')
   let lines = dbg#read(0)
   if len(lines) >= 1
-    if match(lines[0], '\[\d\+\].*\(.*:\d\+\)') != -1
-      let start = stridx(lines[0], '(') + 1
-      let mid   = stridx(lines[0], ':')
-      let end   = stridx(lines[0], ')') - 1
-      let name  = lines[0][start : mid-1]
-      let num   = lines[0][mid+1 : end  ]
-      let path  = t:dbg._base_dir . '/' . name
+    " line to parse
+    " [1] test.HelloWorld.main (HelloWorld.java:6)
+    let line = lines[0]
+    if match(line, '\[\d\+\].*\(.*:\d\+\)') != -1
+      let startPackage = stridx(line, ']') + 2
+      let endPackage = stridx(line, '(') - 2
+      let startClass = stridx(line, '(') + 1
+      let midClass   = stridx(line, ':')
+      let endClass   = stridx(line, ')') - 1
+      let nameExtension  = line[startClass : midClass-1]
+      let name = nameExtension[0:stridx(nameExtension, '.')-1]
+      let packageClassMethod = line[startPackage : endPackage]
+      let package = packageClassMethod[0:stridx(packageClassMethod, name)-2]
+      let num   = line[midClass+1 : endClass ]
+      let path  = t:dbg._base_dir . '/' . substitute(package, "\\.", "/", "g") . '/' . nameExtension
       if filereadable(path)
         call dbg#openSource(path, num)
       else
