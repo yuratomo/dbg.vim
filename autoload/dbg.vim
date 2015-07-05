@@ -8,10 +8,16 @@ let s:updatetime = 0
 
 function! dbg#usage()
   echo '[usage]'
-  echo 'Dbg [shell|cdb|mdbg|gdb|jdb|fdb] [params]+'
+  echo 'Dbg [shell|mdbg]'
+  echo 'or'
+  echo 'Dbg [cdb|gdb|jdb|fdb|perl] [params]+'
   echo ''
-  echo 'ex1) cdb'
-  echo 'Dbg cdb c:\hoge\aaa.exe'
+  echo 'example 1) cdb'
+  echo '  Dbg cdb c:\hoge\aaa.exe'
+  echo 'example 2) gdb'
+  echo '  Dbg gdb a.out'
+  echo 'example 3) jdb'
+  echo '  Dbg jdb test.Example'
   echo ''
 endfunction
 
@@ -34,7 +40,7 @@ function! dbg#open(mode, ...)
   try
     let dbg_per_engine = dbg#engines#{a:mode}#init()
   catch /.*/
-    echo 'Debugger "' . a:mode . '" is not exists.'
+    echo 'error in debugger "' . a:mode . '" ' . v:exception
     return
   endtry
   let t:dbg = {
