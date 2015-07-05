@@ -623,17 +623,6 @@ function s:map_ctrl_key(map)
   inoremap <expr> <buffer> <TAB> dbg#tab()
   inoremap <expr> <buffer> <S-TAB> dbg#stab()
   inoremap <buffer> <c-c> <ESC>:<c-u>call dbg#direct_write(3)<RETURN>a
-
-" let c = 1
-" let i = char2nr('a')
-" let e = char2nr('z')
-" while i <= e
-"   exec 'inoremap <expr> <buffer> <c-' . nr2char(i) . '> dbg#direct_write(' . c .  ')'
-"   let c += 1
-"   let i += 1
-" endwhile
-" inoremap <expr> <buffer> <c-c> dbg#control(3)
-
 endfunction
 
 function s:map_normal_key(map)
