@@ -306,20 +306,33 @@ function! dbg#openSource(path, line)
       endif
     endfor
   endif
+  call dbg#markCurrentLine(a:line)
+  normal zz
+ exe curwinno . "wincmd w"
+endfunction
+
+function dbg#markCurrentLine(line)
   let old_sign_id = t:dbg.sign_id
   if t:dbg.sign_id == 1
     let t:dbg.sign_id = 2
   else
     let t:dbg.sign_id = 1
   endif
-  exe ':sign place ' . t:dbg.sign_id . ' name=dbg_cur line=' . a:line . ' buffer=' . winbufnr(0)
-  try
-    exe ':sign unplace ' . old_sign_id . ' buffer=' . winbufnr(0)
-  catch /.*/
-  endtry
-  normal zz
- exe curwinno . "wincmd w"
+  let signs = 0
+
+  if signs 
+    exe ':sign place ' . t:dbg.sign_id . ' name=dbg_cur line=' . a:line . ' buffer=' . winbufnr(0)
+    try
+      exe ':sign unplace ' . old_sign_id . ' buffer=' . winbufnr(0)
+    catch /.*/
+    endtry
+  else
+    silent! syn clear DbgContext
+    exec 'match DbgContext "\%'.a:line.'l.*"'
+  endif
 endfunction
+
+highlight default DbgContext ctermfg=17 ctermbg=45 guifg=#00005f guibg=#00dfff
 
 function! s:command()
   let line = getline('$')
