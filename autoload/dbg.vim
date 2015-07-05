@@ -67,6 +67,9 @@ function! dbg#popen(cmd, params, welcome)
 
   let cmd_params = []
   call add(cmd_params, a:cmd)
+  if has_key(t:dbg, 'cmdOptions')
+    call add(cmd_params, t:dbg.cmdOptions)
+  endif
   call extend(cmd_params, a:params)
 
   try
@@ -422,6 +425,24 @@ function! dbg#read(output)
     else
       if has_key(t:dbg, 'encoding')
         let res = iconv(res, t:dbg.encoding, &enc)
+      endif
+      if has_key(t:dbg, 'filter')
+        let len = len(t:dbg.filter)
+        let l = 0
+        while l < len
+          let filter = t:dbg.filter[l]
+          let substitution = ""
+          let regexp = filter
+          if type(filter) == type([])
+            unlet regexp
+            let regexp = filter[0]
+            let substitution = filter[1]
+          endif
+          let res = substitute(res, regexp, substitution, "g")
+          let l += 1
+          unlet filter
+          unlet regexp
+        endwhile
       endif
       let t:dbg.line = t:dbg.line . substitute(res, '\r', '', 'g')
       let nop_cnt = 0
