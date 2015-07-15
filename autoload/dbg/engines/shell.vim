@@ -8,6 +8,7 @@ function! dbg#engines#shell#init()
       \ 'needArgs'  : 0,
       \ 'gdbMode'   : 0,
       \ 'split'     : 0,
+      \ 'useKeyMap' : 0
       \ }
   if exists('g:dbg#command_encoding')
     let engine.encoding = g:dbg#command_encoding

@@ -46,6 +46,7 @@ function! dbg#open(mode, ...)
     \ 'sign_id'     : 1,
     \ 'gdbMode'     : 1,
     \ 'split'       : 1,
+    \ 'useKeyMap'   : 1,
     \ 'engine'      : {},
     \ 'pipe'        : {},
     \ }
@@ -57,7 +58,8 @@ function! dbg#open(mode, ...)
   endif
 
   call t:dbg.engine.open(a:000)
-  if a:mode != 'shell'
+
+  if t:dbg.useKeyMap == 1
     call s:default_keymap()
   endif
 endfunction
