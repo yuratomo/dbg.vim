@@ -74,7 +74,11 @@ function! dbg#popen(cmd, params, welcome)
   let cmd_params = []
   call add(cmd_params, a:cmd)
   if has_key(t:dbg, 'cmdOptions')
-    call add(cmd_params, t:dbg.cmdOptions)
+    if t:dbg.cmdOptions =~ " "
+      call extend(cmd_params, split(t:dbg.cmdOptions, " "))
+    else
+      call add(cmd_params, t:dbg.cmdOptions)
+    endif
   endif
   call extend(cmd_params, a:params)
 
