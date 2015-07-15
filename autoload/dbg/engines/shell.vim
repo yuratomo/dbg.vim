@@ -3,10 +3,11 @@ let s:engine = dbg#initEngine('shell')
 
 function! dbg#engines#shell#init()
   let engine = {
-      \ 'prompt'  : g:dbg#shell_prompt,
-      \ 'engine'  : s:engine,
-      \ 'gdbMode' : 0,
-      \ 'split'   : 0,
+      \ 'prompt'    : g:dbg#shell_prompt,
+      \ 'engine'    : s:engine,
+      \ 'needArgs'  : 0,
+      \ 'gdbMode'   : 0,
+      \ 'split'     : 0,
       \ }
   if exists('g:dbg#command_encoding')
     let engine.encoding = g:dbg#command_encoding

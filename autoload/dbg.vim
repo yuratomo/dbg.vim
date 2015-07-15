@@ -25,12 +25,6 @@ function! dbg#open(mode, ...)
   if exists('t:dbg')
     call dbg#close()
   endif
-  if len(a:000) == 0
-    if a:mode != 'mdbg' &&  a:mode != 'shell'
-      call dbg#usage()
-      return
-    endif
-  endif
 
   if !exists('g:loaded_vimproc')
     echoerr "dbg.vim is depend on vimproc. Please install it."
@@ -46,6 +40,7 @@ function! dbg#open(mode, ...)
   let t:dbg = {
     \ 'prompt'      : '> ',
     \ 'verbose'     : 0,
+    \ 'needArgs'    : 1,
     \ 'line'        : '',
     \ 'lastCommand' : '',
     \ 'sign_id'     : 1,
@@ -55,6 +50,11 @@ function! dbg#open(mode, ...)
     \ 'pipe'        : {},
     \ }
   call extend(t:dbg, dbg_per_engine)
+
+  if len(a:000) == 0 && t:dbg.needArgs == 1
+    call dbg#usage()
+    return
+  endif
 
   call t:dbg.engine.open(a:000)
   if a:mode != 'shell'

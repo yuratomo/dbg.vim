@@ -4,6 +4,7 @@ let s:engine = dbg#initEngine('mdbg')
 function! dbg#engines#mdbg#init()
   return {
     \ 'prompt'      : 'mdbg> ',
+    \ 'needArgs'      : 0,
     \ 'engine'      : s:engine
     \ }
 endfunction
