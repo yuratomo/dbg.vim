@@ -8,22 +8,22 @@ let s:updatetime = 0
 
 function! dbg#usage()
   echo '[usage]'
-  echo 'Dbg [shell|cdb|mdbg|gdb|jdb|fdb] [params]+'
+  echo 'Dbg [shell|mdbg]'
+  echo 'or'
+  echo 'Dbg [cdb|gdb|jdb|fdb|perl] [params]+'
   echo ''
-  echo 'ex1) cdb'
-  echo 'Dbg cdb c:\hoge\aaa.exe'
+  echo 'example 1) cdb'
+  echo '  Dbg cdb c:\hoge\aaa.exe'
+  echo 'example 2) gdb'
+  echo '  Dbg gdb a.out'
+  echo 'example 3) jdb'
+  echo '  Dbg jdb test.Example'
   echo ''
 endfunction
 
 function! dbg#open(mode, ...)
   if exists('t:dbg')
     call dbg#close()
-  endif
-  if len(a:000) == 0
-    if a:mode != 'mdbg' &&  a:mode != 'shell'
-      call dbg#usage()
-      return
-    endif
   endif
 
   if !exists('g:loaded_vimproc')
@@ -34,24 +34,32 @@ function! dbg#open(mode, ...)
   try
     let dbg_per_engine = dbg#engines#{a:mode}#init()
   catch /.*/
-    echo 'Debugger "' . a:mode . '" is not exists.'
+    echo 'error in debugger "' . a:mode . '" ' . v:exception
     return
   endtry
   let t:dbg = {
     \ 'prompt'      : '> ',
     \ 'verbose'     : 0,
+    \ 'needArgs'    : 1,
     \ 'line'        : '',
     \ 'lastCommand' : '',
     \ 'sign_id'     : 1,
     \ 'gdbMode'     : 1,
     \ 'split'       : 1,
+    \ 'useKeyMap'   : 1,
     \ 'engine'      : {},
     \ 'pipe'        : {},
     \ }
   call extend(t:dbg, dbg_per_engine)
 
+  if len(a:000) == 0 && t:dbg.needArgs == 1
+    call dbg#usage()
+    return
+  endif
+
   call t:dbg.engine.open(a:000)
-  if a:mode != 'shell'
+
+  if t:dbg.useKeyMap == 1
     call s:default_keymap()
   endif
 endfunction
@@ -67,6 +75,13 @@ function! dbg#popen(cmd, params, welcome)
 
   let cmd_params = []
   call add(cmd_params, a:cmd)
+  if has_key(t:dbg, 'cmdOptions')
+    if t:dbg.cmdOptions =~ " "
+      call extend(cmd_params, split(t:dbg.cmdOptions, " "))
+    else
+      call add(cmd_params, t:dbg.cmdOptions)
+    endif
+  endif
   call extend(cmd_params, a:params)
 
   try
@@ -306,20 +321,33 @@ function! dbg#openSource(path, line)
       endif
     endfor
   endif
+  call dbg#markCurrentLine(a:line)
+  normal zz
+ exe curwinno . "wincmd w"
+endfunction
+
+function dbg#markCurrentLine(line)
   let old_sign_id = t:dbg.sign_id
   if t:dbg.sign_id == 1
     let t:dbg.sign_id = 2
   else
     let t:dbg.sign_id = 1
   endif
-  exe ':sign place ' . t:dbg.sign_id . ' name=dbg_cur line=' . a:line . ' buffer=' . winbufnr(0)
-  try
-    exe ':sign unplace ' . old_sign_id . ' buffer=' . winbufnr(0)
-  catch /.*/
-  endtry
-  normal zz
- exe curwinno . "wincmd w"
+  let signs = 0
+
+  if signs 
+    exe ':sign place ' . t:dbg.sign_id . ' name=dbg_cur line=' . a:line . ' buffer=' . winbufnr(0)
+    try
+      exe ':sign unplace ' . old_sign_id . ' buffer=' . winbufnr(0)
+    catch /.*/
+    endtry
+  else
+    silent! syn clear DbgContext
+    exec 'match DbgContext "\%'.a:line.'l.*"'
+  endif
 endfunction
+
+highlight default DbgContext ctermfg=17 ctermbg=45 guifg=#00005f guibg=#00dfff
 
 function! s:command()
   let line = getline('$')
@@ -409,6 +437,24 @@ function! dbg#read(output)
     else
       if has_key(t:dbg, 'encoding')
         let res = iconv(res, t:dbg.encoding, &enc)
+      endif
+      if has_key(t:dbg, 'filter')
+        let len = len(t:dbg.filter)
+        let l = 0
+        while l < len
+          let filter = t:dbg.filter[l]
+          let substitution = ""
+          let regexp = filter
+          if type(filter) == type([])
+            unlet regexp
+            let regexp = filter[0]
+            let substitution = filter[1]
+          endif
+          let res = substitute(res, regexp, substitution, "g")
+          let l += 1
+          unlet filter
+          unlet regexp
+        endwhile
       endif
       let t:dbg.line = t:dbg.line . substitute(res, '\r', '', 'g')
       let nop_cnt = 0
@@ -610,17 +656,6 @@ function s:map_ctrl_key(map)
   inoremap <expr> <buffer> <TAB> dbg#tab()
   inoremap <expr> <buffer> <S-TAB> dbg#stab()
   inoremap <buffer> <c-c> <ESC>:<c-u>call dbg#direct_write(3)<RETURN>a
-
-" let c = 1
-" let i = char2nr('a')
-" let e = char2nr('z')
-" while i <= e
-"   exec 'inoremap <expr> <buffer> <c-' . nr2char(i) . '> dbg#direct_write(' . c .  ')'
-"   let c += 1
-"   let i += 1
-" endwhile
-" inoremap <expr> <buffer> <c-c> dbg#control(3)
-
 endfunction
 
 function s:map_normal_key(map)

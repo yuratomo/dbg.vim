@@ -1,26 +1,32 @@
 
-let s:engine = dbg#initEngine('mdbg')
+let s:engine = dbg#initEngine('perlremote')
 
-function! dbg#engines#mdbg#init()
+function! dbg#engines#perlremote#init()
   return {
-    \ 'prompt'      : 'mdbg> ',
-    \ 'needArgs'      : 0,
-    \ 'engine'      : s:engine
+    \ 'prompt'      : '  DB<\d\+> ',
+    \ 'filter'      : ["\e\[[0-9;]*[mK]",["^  ", ">>"]],
+    \ 'engine'      : s:engine,
+    \ 'needArgs'    : '0',
+    \ 'cmdOptions'  : ' -v -l localhost -p 12345'
     \ }
 endfunction
 
 function! s:engine.open(params)
-  call dbg#popen(g:dbg#command_mdbg, a:params, [
+  "resolve base directory
+  let base_dir = input('base directory:', expand('%:p:h'), 'dir')
+  let t:dbg._base_dir = base_dir
+  if !isdirectory(base_dir)
+    exe 'echoerr "' . base_dir . ' is not a directory"'
+    return
+  endif
+  exe 'cd ' . base_dir
+
+  call dbg#popen(g:dbg#command_perlremote, a:params, [
   \ '-----------------------------------------------',
-  \ '         Welcome to dbg.vim (MDBG MODE)',
-  \ '!! You will need to run the target program.',
-  \ 'for example:',
-  \ '',
-  \ '> run',
+  \ '    Welcome to dbg.vim (PERL REMOTE MODE)',
   \ '-----------------------------------------------',
-  \ 'mdbg> '
   \ ])
-  "call s:engine.sync()
+  call s:engine.sync()
   call dbg#insert()
 endfunction
 
@@ -43,13 +49,13 @@ function! s:engine.step()
 endfunction
 
 function! s:engine.continue()
-  call dbg#write(0, 'go')
+  call dbg#write(0, 'continue')
   call dbg#read(0)
   call s:engine.sync()
 endfunction
 
 function! s:engine.stepout()
-  call dbg#write(0, 'out')
+  call dbg#write(0, 'finish')
   call dbg#read(0)
   call s:engine.sync()
 endfunction
@@ -62,7 +68,7 @@ function! s:engine.print(...)
     let word = expand("<cword>")
   endif
   call dbg#focusIn()
-  call dbg#write(1, printf('print %s', word))
+  call dbg#write(0, printf('print %s', word))
   call dbg#read(1)
   call cursor('$',0)
   redraw
@@ -78,10 +84,7 @@ function! s:engine.breakpoint(...)
     let line = line('.')
   endif
   call dbg#focusIn()
-  call dbg#write(1, printf('break %s:%d',
-    \ path,
-    \ line
-    \ ))
+  call dbg#write(0, printf('break %s:%d', path, line))
   call dbg#read(1)
   call cursor('$',0)
   redraw
@@ -90,51 +93,47 @@ endfunction
 
 function! s:engine.locals()
   call dbg#focusIn()
-  call dbg#write(1, 'print')
+  call dbg#write(0, 'info locals')
   call dbg#read(1)
   call dbg#focusBack()
 endfunction
 
 function! s:engine.threads()
   call dbg#focusIn()
-  call dbg#write(1, 'thread')
+  call dbg#write(0, 'info threads')
   call dbg#read(1)
   call dbg#focusBack()
 endfunction
 
 function! s:engine.callstack()
   call dbg#focusIn()
-  call dbg#write(1, 'where')
+  call dbg#write(0, 'backtrace')
   call dbg#read(1)
   call dbg#focusBack()
 endfunction
 
 function! s:engine.sync()
   let path = ''
-  call dbg#write(0, 'where')
+  call dbg#write(0, '.')
   let lines = dbg#read(0)
   for line in lines
-    if line[0] == '*'
-      let s = stridx(line, '(')
-      let e = strridx(line, ':')
-      if s != -1 && e != -1
-        let path = line[ s+1 : e-1 ]
-        let num = line[ e+1 : -2 ]
-        break
-      endif
+    if line =~ '\(.*\)::(\(.*\):\(\d\+\)):'
+      exec substitute(line,
+          \ '\(.*\)::(\(.*\):\(\d\+\)):',
+          \ 'let func = "\1" | let path = "\2" | let line = "\3"', '')
+      break
     endif
   endfor
-  if path != ''
-    call dbg#openSource(path, num)
+  if path == '' || !filereadable(path)
+    return
   endif
-endfunction
 
-"function! s:engine.post_write(cmd)
-"endfunction
+  call dbg#openSource(path, line)
+endfunction
 
 function! s:engine.close()
   call dbg#focusIn()
-  call dbg#write(1, 'exit')
+  call dbg#write(0, 'quit')
   call dbg#read(1)
   call dbg#focusBack()
 endfunction

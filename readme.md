@@ -1,11 +1,19 @@
-dbg.vim
-=======
+# dbg.vim
 
-Description
------------
-dbg.vim is vim scipt for debug the program.
-support mdbg, cdb, gdb, jdb and fdb. (not support pdb now)
+A wrapper debugger to control command line debuggers from vim.
+
+Supported debuggers: 
+
+ - mdbg: .Net
+ - cdb: Windows C++
+ - gdb: GNU Debugger
+ - jdb: Java debugger
+ - fdb: Flex debugger
+
+not support pdb now
+
 !!cdb is a command-line debugger for windows.
+
 !!mdbg is a command-line debugger for .Net Framework.
 
 Requirements

@@ -51,6 +51,12 @@ endif
 if !exists('g:dbg#command_fdb')
   let g:dbg#command_fdb    = 'fdb'
 endif
+if !exists('g:dbg#command_perl')
+  let g:dbg#command_perl = 'perl'
+endif
+if !exists('g:dbg#command_perlremote')
+  let g:dbg#command_perlremote = 'nc'
+endif
 if !exists('g:dbg#command_python')
   let g:dbg#command_python = 'python'
 endif
